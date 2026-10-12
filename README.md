@@ -55,17 +55,19 @@ syncs up automatically, and every change syncs in the background
 ## Importing WeChat / Alipay bills
 
 There is no free API for personal WeChat/Alipay data, so the flow is
-export-then-upload (steps are also shown in the app):
+export-then-upload (steps are also shown in the app). Note: the WeChat
+export below is verified for the **mainland RMB wallet** only — we could
+not verify a file-export option on WeChat Pay HK.
 
-**WeChat Pay:** 我 (Me) → 服务 (Services) → 钱包 (Wallet) → 账单 (Bill,
-top-right) → ··· → 下载账单 (Download Bill) → 用于个人对账 (For Personal
-Reconciliation, not 用作证明材料) → face-verify → the bill arrives in the
-微信支付 chat → 查看详情 → download. If it's a zip, unzip it first, then
-upload the .csv/.xlsx here.
+**WeChat Pay (mainland RMB wallet):** 我 (Me) → 服务 (Services) →
+钱包 (Wallet) → 账单 (Bill, top-right) → ··· → 下载账单 (Download Bill) →
+用于个人对账 (For Personal Reconciliation, not 用作证明材料) →
+face-verify → the bill arrives in the 微信支付 chat → 查看详情 →
+download. If it's a zip, unzip it first, then upload the .csv/.xlsx here.
 
-**Alipay:** 我的 (Me) → 账单 (Bill) → ··· → 开具交易流水证明 →
-用于个人对账 (For Personal Reconciliation) → wait for the message →
-download the file → upload the .csv/.xlsx here.
+**Alipay (mainland):** 我的 (Me) → 账单 (Bill) → ··· →
+开具交易流水证明 → 用于个人对账 (For Personal Reconciliation) →
+wait for the message → download the file → upload the .csv/.xlsx here.
 
 The parser skips WeChat's leading metadata lines, handles GBK/UTF-8
 encodings, and reads .xlsx in the browser via SheetJS (CDN).
