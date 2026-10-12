@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Import — Expense Tracker{% endblock %}
+{% block content %}
+<h1>Import bills</h1>
+
+<p class="muted">Export from your phone app, then upload the file here.
+No API keys, no paid services — the file is parsed locally.</p>
+
+<div class="two-col">
+  <section class="card">
+    <h2>💬 WeChat Pay</h2>
+    <ol class="steps">
+      <li>WeChat → <b>Me</b> → <b>Services</b> → <b>Wallet</b></li>
+      <li>Tap <b>Bills</b> (top-right)</li>
+      <li>Tap <b>FAQ</b> → <b>Download Bill</b></li>
+      <li>Choose <b>For Personal Reconciliation</b>, pick dates</li>
+      <li>Enter email → download the <b>zip</b> → <b>unzip it</b></li>
+      <li>Upload the <b>.csv</b> / <b>.xlsx</b> inside below</li>
+    </ol>
+  </section>
+  <section class="card">
+    <h2>💳 Alipay</h2>
+    <ol class="steps">
+      <li>Alipay → <b>My</b> → <b>Settings</b> → <b>Bills</b></li>
+      <li>Tap <b>···</b> → <b>Get Transaction Statement</b></li>
+      <li>Choose <b>For Personal Reconciliation</b>, pick dates</li>
+      <li>Tick <b>Show Counterparty Info</b> and
+        <b>Show Product Description Info</b></li>
+      <li>Enter email → download the file</li>
+      <li>Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+    </ol>
+  </section>
+</div>
+
+<section>
+  <h2>Upload</h2>
+  <form id="frm-import" class="toolbar">
+    <input type="file" id="f-file" accept=".csv,.xlsx" required>
+    <button type="submit" class="primary">Import</button>
+  </form>
+  <div id="import-result" class="muted"></div>
+</section>
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Expense Tracker{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<form method="get" class="toolbar">
+  <label>Month
+    <select name="month" onchange="this.form.submit()">
+      <option value="">All time</option>
+      {% for m in months %}
+      <option value="{{ m.month }}"
+              {% if m.month == month %}selected{% endif %}>{{ m.month }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% if month %}<a href="{{ url_for('dashboard') }}">Clear</a>{% endif %}
+</form>
+
+<section class="cards">
+  <div class="card">
+    <div class="card-num">{{ "%.2f"|format(total.total) }}</div>
+    <div class="card-label">Total spent{% if month %} ({{ month }}){% endif %}</div>
+  </div>
+  <div class="card">
+    <div class="card-num">{{ total.count }}</div>
+    <div class="card-label">Transactions</div>
+  </div>
+</section>
+
+<div class="two-col">
+  <section>
+    <h2>By category</h2>
+    <table class="tbl">
+      <thead><tr><th>Category</th><th>Total</th><th>#</th></tr></thead>
+      <tbody>
+      {% for r in by_cat %}
+        <tr><td>{{ r.category }}</td>
+          <td>{{ "%.2f"|format(r.total) }}</td><td>{{ r.n }}</td></tr>
+      {% else %}
+        <tr><td colspan="3" class="muted">No data yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  <section>
+    <h2>By platform</h2>
+    <table class="tbl">
+      <thead><tr><th>Platform</th><th>Total</th><th>#</th></tr></thead>
+      <tbody>
+      {% for r in by_plat %}
+        <tr><td>{{ platforms.get(r.platform, r.platform) }}</td>
+          <td>{{ "%.2f"|format(r.total) }}</td><td>{{ r.n }}</td></tr>
+      {% else %}
+        <tr><td colspan="3" class="muted">No data yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<section>
+  <h2>Monthly trend</h2>
+  <table class="tbl">
+    <thead><tr><th>Month</th><th>Total</th><th>#</th></tr></thead>
+    <tbody>
+    {% for m in months %}
+      <tr><td><a href="{{ url_for('dashboard', month=m.month) }}">{{ m.month }}</a></td>
+        <td>{{ "%.2f"|format(m.total) }}</td><td>{{ m.n }}</td></tr>
+    {% else %}
+      <tr><td colspan="3" class="muted">No data yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
