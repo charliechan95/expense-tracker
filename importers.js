@@ -63,7 +63,9 @@ const Importers = {
       if (status && !this.WECHAT_OK_STATUS.some((s) => status.includes(s))) continue;
       if (this.WECHAT_REFUND.some((m) => status.includes(m))) continue;
       const txid = this._col(row, header, this.WECHAT_ID);
-      const amountRaw = this._col(row, header, "金额").replace("¥", "").replace(",", "");
+      // Strip everything except digits/dot/minus — survives ¥, ￥, commas,
+      // spaces, or a mojibake currency symbol from a mis-decoded file.
+      const amountRaw = this._col(row, header, "金额").replace(/[^\d.\-]/g, "");
       const amount = Math.abs(parseFloat(amountRaw));
       if (!amount || !txid) continue;
       const timeRaw = this._col(row, header, "交易时间");
@@ -88,7 +90,7 @@ const Importers = {
       if (!row.some((c) => (c || "").trim())) continue;
       const txid = this._col(row, header, this.ALIPAY_ID);
       const amountRaw = (this._col(row, header, "金额") ||
-        this._col(row, header, "交易金额")).replace("¥", "").replace(",", "");
+        this._col(row, header, "交易金额")).replace(/[^\d.\-]/g, "");
       const direction = this._col(row, header, "收/支") || this._col(row, header, "资金流向");
       const status = this._col(row, header, "交易状态") || this._col(row, header, "状态");
       let amount = parseFloat(amountRaw);
@@ -145,7 +147,13 @@ const Importers = {
         break;
       } catch { continue; }
     }
-    if (text == null) text = new TextDecoder("utf-8").decode(bytes);
+    if (text == null) {
+      // Last resort (non-fatal): a stray undecodable byte (e.g. a GBK-encoded
+      // ¥) shouldn't sink the whole file. Prefer the decode that keeps CJK.
+      const gb = new TextDecoder("gb18030").decode(bytes);
+      const utf = new TextDecoder("utf-8").decode(bytes);
+      text = (gb.includes(this.WECHAT_ID) || gb.includes(this.ALIPAY_ID)) ? gb : utf;
+    }
     // Strip BOM
     if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
     return this.detectAndParseRows(this._parseCSV(text));

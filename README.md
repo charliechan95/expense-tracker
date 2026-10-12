@@ -1,37 +1,59 @@
 # Expense Tracker
 
-A free, self-hosted expense tracker with WeChat Pay and Alipay bill import.
-No paid APIs, no subscriptions — everything runs locally.
+A free expense tracker with WeChat Pay and Alipay bill import.
+Offline-first: works instantly with zero setup (data in your browser),
+and optionally syncs across devices with a free Supabase backend —
+no paid APIs, no subscriptions.
 
-## Stack (all free)
+## Run it
 
-- **Flask** — web framework (open source)
-- **SQLite** — database via Python stdlib (no server, no cost)
-- **Vanilla HTML/CSS/JS** — no frontend framework, no build step
+No install, no server. Unzip and double-click **index.html** —
+or host the folder anywhere static (GitHub Pages, Vercel).
+On your phone: open the hosted link → Share → Add to Home Screen
+for a full-screen app icon (PWA).
 
-## Quick start
+## Backend (optional, free)
 
-```bash
-cd expense-tracker
-pip install -r requirements.txt
-python app.py
-```
+The app is offline-first: everything works without any setup.
+To sync across devices:
 
-Open http://localhost:5001
+1. Create a free project at **supabase.com** (sign in with GitHub) —
+   no credit card needed.
+2. **SQL Editor → New query** → paste `supabase-setup.sql` → Run.
+3. **Authentication → Providers → Email** → turn OFF "Confirm email".
+4. **Settings → API** → copy the **Project URL** and the **publishable key**
+   (`sb_publishable_…`) into `config.js`. Never use the secret key.
+
+Then open the app, create an account, and sign in — existing local data
+syncs up automatically, and every change syncs in the background
+(last-write-wins). Sign-in is only needed once per device.
 
 ## What it does
 
-- **Dashboard** — total spend, breakdown by category and by platform,
-  monthly trend, month filter
-- **Expenses** — searchable/filterable list, manual add, delete
+- **Dashboard** — this month's spend with % vs last month, category donut
+  chart, 30-day spending bars, per-category breakdown (tap a category to
+  filter the expense list)
+- **Expenses** — searchable/filterable list, add + edit, category pills
+  with icons, "Needs review" inbox for uncategorized imports
+- **Budgets** — monthly budget per category with progress bars and
+  overspend warnings
 - **Import** — upload WeChat Pay or Alipay bill exports (.csv / .xlsx);
-  platform auto-detected, income and refunds auto-filtered,
-  duplicates skipped by transaction ID
+  platform auto-detected, income and refunds filtered, duplicates skipped.
+  **Review screen before anything is saved**: each row shows its proposed
+  category, you can fix them inline, then confirm.
+- **Auto-categorization** — deterministic engine, no AI needed:
+  your rules → merchant memory (learns from every correction you make) →
+  HK-savvy keyword defaults (bilingual) → review inbox for the rest
+- **Multi-currency** — per-transaction currency kept; toggle display
+  between CNY and HKD with your own conversion rate
+- **Settings** — display currency, backup (export JSON) / restore,
+  backend status + manual sync + sign out, delete-all-data
+  (also deletes the cloud copy when signed in)
 
 ## Importing WeChat / Alipay bills
 
 There is no free API for personal WeChat/Alipay data, so the flow is
-export-then-upload:
+export-then-upload (steps are also shown in the app):
 
 **WeChat Pay:** Me → Services → Wallet → Bills → FAQ → Download Bill →
 "For Personal Reconciliation" → enter email → unzip the emailed file →
@@ -42,20 +64,28 @@ upload the .csv/.xlsx here.
 "Show Product Description Info" → enter email → upload the file here.
 
 The parser skips WeChat's leading metadata lines, handles GBK/UTF-8
-encodings, and reads .xlsx with only the stdlib (no extra dependencies).
+encodings, and reads .xlsx in the browser via SheetJS (CDN).
 
-## Deploying to Render (free)
+## Files
 
-1. Push this folder to a GitHub repo
-2. In Render: New → Blueprint → point at the repo (`render.yaml`)
-3. The 1GB persistent disk keeps `expenses.db` across deploys
-
-Why not Vercel: serverless filesystems are ephemeral — SQLite data
-would be wiped. Render's free tier includes a persistent disk.
+- `index.html` — all views (dashboard, expenses, budgets, import, auth)
+- `app.js` — UI logic, charts (inline SVG, no chart library), auth + boot
+- `db.js` — data layer (expenses, merchant memory, rules,
+  budgets, settings, backup/restore) + sync dirty-queue
+- `sync.js` — offline-first sync engine (push/pull, last-write-wins)
+- `sb.js` — Supabase client wrapper (auth + table ops)
+- `config.js` — paste your Supabase URL + publishable key here
+- `supabase-setup.sql` — backend schema + row-level security (run once)
+- `categorize.js` — auto-categorization engine + bilingual category
+  metadata (icons, colors) + HK keyword set
+- `importers.js` — WeChat/Alipay CSV/XLSX parsing and dedupe
+- `style.css` — all styling, mobile-first, no frameworks
+- `manifest.json` / `sw.js` / `icon-*.png` — PWA install + offline shell
+- `build_preview.py` — builds the single-file in-chat preview
 
 ## Notes
 
-- Data lives in `expenses.db` (created automatically; `DB_PATH` env var
-  overrides the location).
-- Amounts are stored as entered — no live FX conversion (would need a
-  paid API).
+- Amounts convert for display only, using your own CNY→HKD rate —
+  no live FX API needed.
+- Old v1 data migrates automatically (existing rows keep their
+  categories and won't flood the review inbox).

@@ -2,6 +2,24 @@
    localStorage-backed, no backend. Mirrors the Flask models.py API. */
 "use strict";
 
+/* Storage shim: prefers localStorage, falls back to in-memory storage when
+   the page runs somewhere localStorage is blocked (e.g. a sandboxed preview
+   iframe). The app keeps working; data just doesn't persist across reloads. */
+const _memStore = Object.create(null);
+const storage = (() => {
+  try {
+    storage.setItem("__exp_probe__", "1");
+    storage.removeItem("__exp_probe__");
+    return localStorage;
+  } catch {
+    return {
+      getItem: (k) => (k in _memStore ? _memStore[k] : null),
+      setItem: (k, v) => { _memStore[k] = String(v); },
+      removeItem: (k) => { delete _memStore[k]; },
+    };
+  }
+})();
+
 const PLATFORMS = [
   ["wechat", "WeChat Pay"],
   ["alipay", "Alipay"],
@@ -12,29 +30,55 @@ const PLATFORMS = [
 const PLATFORM_LABELS = Object.fromEntries(PLATFORMS);
 
 const DEFAULT_CATEGORIES = [
-  "Food & Drink", "Transport", "Shopping", "Housing", "Utilities",
-  "Health", "Entertainment", "Travel", "Education", "Other",
+  "Food & Drink", "Groceries", "Transport", "Shopping", "Housing", "Utilities",
+  "Health", "Entertainment", "Travel", "Education", "Personal", "Other",
 ];
 
 const DB = {
   _read(key, fallback) {
     try {
-      const raw = localStorage.getItem(key);
+      const raw = storage.getItem(key);
       return raw ? JSON.parse(raw) : fallback;
     } catch {
       return fallback;
     }
   },
   _write(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    storage.setItem(key, JSON.stringify(value));
   },
   _nextId() {
-    const n = (parseInt(localStorage.getItem("exp_seq") || "0", 10) || 0) + 1;
-    localStorage.setItem("exp_seq", String(n));
+    const n = (parseInt(storage.getItem("exp_seq") || "0", 10) || 0) + 1;
+    storage.setItem("exp_seq", String(n));
     return n;
   },
   nowIso() {
     return new Date().toISOString().slice(0, 19);
+  },
+
+  /* ---- Cloud sync bookkeeping (offline-first) ---------------------------
+     Every mutation queues a dirty entry; Sync pushes them in the background.
+     Guarded so the data layer works with or without sync.js loaded. */
+  _syncQueue() {
+    return this._read("exp_sync_queue", []);
+  },
+  markSyncDirty(table, op, ref, extra) {
+    const q = this._syncQueue();
+    q.push(Object.assign({ table, op, ref, at: this.nowIso() }, extra || {}));
+    this._write("exp_sync_queue", q);
+    if (typeof Sync !== "undefined") Sync.schedule();
+  },
+  takeSyncQueue() {
+    const q = this._syncQueue();
+    this._write("exp_sync_queue", []);
+    return q;
+  },
+  lastPull(table) {
+    return (this._read("exp_last_pull", {}))[table] || null;
+  },
+  setLastPull(table, iso) {
+    const m = this._read("exp_last_pull", {});
+    m[table] = iso;
+    this._write("exp_last_pull", m);
   },
 
   create(data) {
@@ -45,6 +89,7 @@ const DB = {
     }
     const exp = {
       id: this._nextId(),
+      cloud_id: null,
       amount: parseFloat(data.amount),
       currency: data.currency || "CNY",
       category: data.category || "Other",
@@ -54,10 +99,13 @@ const DB = {
       expense_date: data.expense_date,
       external_id: data.external_id || null,
       source: data.source || "manual",
+      cat_source: data.cat_source || "manual",
       created_at: this.nowIso(),
+      updated_at: this.nowIso(),
     };
     list.push(exp);
     this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "upsert", exp.id);
     return exp.id;
   },
 
@@ -82,8 +130,9 @@ const DB = {
     const list = this._read("exp_expenses", []);
     const i = list.findIndex((e) => String(e.id) === String(id));
     if (i < 0) return false;
-    list.splice(i, 1);
+    const [gone] = list.splice(i, 1);
     this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "delete", id, { cloud_id: gone.cloud_id || null });
     return true;
   },
 
@@ -91,12 +140,17 @@ const DB = {
     return month ? list.filter((e) => (e.expense_date || "").startsWith(month)) : list;
   },
 
+  /* Amount converted to the user's display currency. */
+  _disp(e) {
+    return this.toDisplay(e.amount, e.currency);
+  },
+
   byCategory(month) {
     const map = {};
     for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
       const c = e.category || "Other";
       map[c] = map[c] || { category: c, total: 0, n: 0 };
-      map[c].total += e.amount;
+      map[c].total += this._disp(e);
       map[c].n++;
     }
     return Object.values(map).sort((a, b) => b.total - a.total);
@@ -107,7 +161,7 @@ const DB = {
     for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
       const p = e.platform || "other";
       map[p] = map[p] || { platform: p, total: 0, n: 0 };
-      map[p].total += e.amount;
+      map[p].total += this._disp(e);
       map[p].n++;
     }
     return Object.values(map).sort((a, b) => b.total - a.total);
@@ -119,7 +173,7 @@ const DB = {
       const m = (e.expense_date || "").slice(0, 7);
       if (!m) continue;
       map[m] = map[m] || { month: m, total: 0, n: 0 };
-      map[m].total += e.amount;
+      map[m].total += this._disp(e);
       map[m].n++;
     }
     return Object.values(map)
@@ -131,7 +185,7 @@ const DB = {
   grandTotal(month) {
     let total = 0, n = 0;
     for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
-      total += e.amount;
+      total += this._disp(e);
       n++;
     }
     return { total, count: n };
@@ -139,5 +193,194 @@ const DB = {
 
   months() {
     return this.monthlyTotals(60).map((m) => m.month).reverse();
+  },
+
+  /* ---- v2 additions: edit, categorization memory, budgets, settings ---- */
+
+  update(id, data) {
+    const list = this._read("exp_expenses", []);
+    const e = list.find((x) => String(x.id) === String(id));
+    if (!e) return false;
+    for (const k of ["currency", "platform", "merchant", "description", "expense_date"]) {
+      if (data[k] !== undefined) e[k] = data[k];
+    }
+    if (data.amount !== undefined && data.amount !== "") e.amount = parseFloat(data.amount);
+    if (data.category && data.category !== e.category) {
+      this.setCategory(id, data.category, true);
+      return true;
+    }
+    e.updated_at = this.nowIso();
+    this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "upsert", e.id);
+    return true;
+  },
+
+  /* Recategorize + teach the merchant memory. Every manual correction
+     makes the next import smarter. */
+  setCategory(id, category, learn = true) {
+    const list = this._read("exp_expenses", []);
+    const e = list.find((x) => String(x.id) === String(id));
+    if (!e || !category) return false;
+    e.category = category;
+    e.cat_source = "manual";
+    e.updated_at = this.nowIso();
+    this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "upsert", e.id);
+    if (learn && e.merchant) this.learnMerchant(e.merchant, category);
+    return true;
+  },
+
+  bulkSetCategory(ids, category) {
+    const idset = new Set(ids.map(String));
+    const list = this._read("exp_expenses", []);
+    let n = 0;
+    for (const e of list) {
+      if (idset.has(String(e.id))) {
+        e.category = category;
+        e.cat_source = "manual";
+        e.updated_at = this.nowIso();
+        n++;
+        this.markSyncDirty("expenses", "upsert", e.id);
+        if (e.merchant) this.learnMerchant(e.merchant, category);
+      }
+    }
+    this._write("exp_expenses", list);
+    return n;
+  },
+
+  getMerchantMemory() {
+    return this._read("exp_merchant_memory", {});
+  },
+
+  learnMerchant(merchant, category) {
+    const key = String(merchant || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (!key || !category || category === "Other") return;
+    const mem = this.getMerchantMemory();
+    mem[key] = category;
+    this._write("exp_merchant_memory", mem);
+    this.markSyncDirty("memory", "upsert", key);
+  },
+
+  getUserRules() {
+    return this._read("exp_user_rules", []);
+  },
+
+  addUserRule(pattern, category) {
+    const rules = this.getUserRules();
+    const rule = { id: Date.now(), cloud_id: null, pattern: String(pattern).trim(), category };
+    rules.push(rule);
+    this._write("exp_user_rules", rules);
+    this.markSyncDirty("rules", "upsert", rule.id);
+  },
+
+  removeUserRule(id) {
+    const rules = this.getUserRules();
+    const gone = rules.find((r) => String(r.id) === String(id));
+    this._write("exp_user_rules",
+      rules.filter((r) => String(r.id) !== String(id)));
+    if (gone) this.markSyncDirty("rules", "delete", id, { cloud_id: gone.cloud_id || null });
+  },
+
+  getBudgets(month) {
+    return (this._read("exp_budgets", {}))[month] || {};
+  },
+
+  setBudget(month, category, amount) {
+    const all = this._read("exp_budgets", {});
+    const m = all[month] || {};
+    const v = parseFloat(amount);
+    if (v > 0) {
+      m[category] = v;
+      this.markSyncDirty("budgets", "upsert", month + "|" + category);
+    } else {
+      delete m[category];
+      this.markSyncDirty("budgets", "delete", month + "|" + category);
+    }
+    all[month] = m;
+    this._write("exp_budgets", all);
+  },
+
+  getSettings() {
+    return Object.assign(
+      { display_currency: "CNY", cny_to_hkd: 1.08 },
+      this._read("exp_settings", {})
+    );
+  },
+
+  saveSettings(patch) {
+    this._write("exp_settings", Object.assign(this.getSettings(), patch));
+    this.markSyncDirty("settings", "upsert", "settings");
+  },
+
+  toDisplay(amount, currency) {
+    const s = this.getSettings();
+    const from = String(currency || "CNY").toUpperCase();
+    const to = String(s.display_currency || "CNY").toUpperCase();
+    if (from === to) return amount;
+    const rate = parseFloat(s.cny_to_hkd) || 1;
+    if (from === "CNY" && to === "HKD") return amount * rate;
+    if (from === "HKD" && to === "CNY") return amount / rate;
+    return amount;
+  },
+
+  displaySymbol() {
+    return (this.getSettings().display_currency || "CNY").toUpperCase() === "HKD"
+      ? "HK$" : "¥";
+  },
+
+  needsReview() {
+    return this._read("exp_expenses", [])
+      .filter((e) => e.cat_source === "unreviewed")
+      .sort((a, b) => (b.expense_date || "").localeCompare(a.expense_date || ""));
+  },
+
+  exportAll() {
+    return {
+      app: "expense-tracker",
+      version: 2,
+      exported_at: this.nowIso(),
+      expenses: this._read("exp_expenses", []),
+      merchant_memory: this.getMerchantMemory(),
+      user_rules: this.getUserRules(),
+      budgets: this._read("exp_budgets", {}),
+      settings: this.getSettings(),
+    };
+  },
+
+  importAll(data) {
+    if (!data || data.app !== "expense-tracker" || !Array.isArray(data.expenses)) {
+      throw new Error("Not a valid expense-tracker backup file.");
+    }
+    this._write("exp_expenses", data.expenses);
+    this._write("exp_merchant_memory", data.merchant_memory || {});
+    this._write("exp_user_rules", data.user_rules || []);
+    this._write("exp_budgets", data.budgets || {});
+    if (data.settings) this._write("exp_settings", data.settings);
+    const maxId = data.expenses.reduce((m, e) => Math.max(m, parseInt(e.id, 10) || 0), 0);
+    storage.setItem("exp_seq", String(maxId));
+    // Restored data needs a full push on next sync.
+    storage.setItem("exp_sync_reseed", "1");
+    if (typeof Sync !== "undefined") Sync.schedule();
+  },
+
+  /* One-time: old rows (v1) have no cat_source — treat as user-confirmed
+     so they don't flood the review inbox. Also backfills the sync fields. */
+  migrate() {
+    if (storage.getItem("exp_migrated_v2")) return;
+    const list = this._read("exp_expenses", []);
+    let changed = false;
+    for (const e of list) {
+      if (!e.cat_source) { e.cat_source = "manual"; changed = true; }
+      if (!e.updated_at) { e.updated_at = e.created_at || this.nowIso(); changed = true; }
+      if (!("cloud_id" in e)) { e.cloud_id = null; changed = true; }
+    }
+    if (changed) this._write("exp_expenses", list);
+    const rules = this._read("exp_user_rules", []);
+    let rChanged = false;
+    for (const r of rules) {
+      if (!("cloud_id" in r)) { r.cloud_id = null; rChanged = true; }
+    }
+    if (rChanged) this._write("exp_user_rules", rules);
+    storage.setItem("exp_migrated_v2", "1");
   },
 };
