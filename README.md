@@ -17,12 +17,14 @@ for a full-screen app icon (PWA).
 The app is offline-first: everything works without any setup.
 To sync across devices:
 
-1. Create a free project at **supabase.com** (sign in with GitHub) —
+1. Create a free project at **supabase.com** —
    no credit card needed.
 2. **SQL Editor → New query** → paste `supabase-setup.sql` → Run.
-3. **Authentication → Providers → Email** → turn OFF "Confirm email".
-4. **Settings → API** → copy the **Project URL** and the **publishable key**
-   (`sb_publishable_…`) into `config.js`. Never use the secret key.
+3. **Authentication → Sign In / Providers** → turn OFF "Confirm email"
+   (under User Signups) → Save.
+4. **Project Settings → Data API / API Keys** → copy the **Project URL**
+   and the **publishable key** (`sb_publishable_…`) into `config.js`.
+   Never use the secret key.
 
 Then open the app, create an account, and sign in — existing local data
 syncs up automatically, and every change syncs in the background
@@ -55,13 +57,15 @@ syncs up automatically, and every change syncs in the background
 There is no free API for personal WeChat/Alipay data, so the flow is
 export-then-upload (steps are also shown in the app):
 
-**WeChat Pay:** Me → Services → Wallet → Bills → FAQ → Download Bill →
-"For Personal Reconciliation" → enter email → unzip the emailed file →
+**WeChat Pay:** 我 (Me) → 服务 (Services) → 钱包 (Wallet) → 账单 (Bill,
+top-right) → ··· → 下载账单 (Download Bill) → 用于个人对账 (For Personal
+Reconciliation, not 用作证明材料) → face-verify → the bill arrives in the
+微信支付 chat → 查看详情 → download. If it's a zip, unzip it first, then
 upload the .csv/.xlsx here.
 
-**Alipay:** My → Settings → Bills → ··· → Get Transaction Statement →
-"For Personal Reconciliation" → tick "Show Counterparty Info" and
-"Show Product Description Info" → enter email → upload the file here.
+**Alipay:** 我的 (Me) → 账单 (Bill) → ··· → 开具交易流水证明 →
+用于个人对账 (For Personal Reconciliation) → wait for the message →
+download the file → upload the .csv/.xlsx here.
 
 The parser skips WeChat's leading metadata lines, handles GBK/UTF-8
 encodings, and reads .xlsx in the browser via SheetJS (CDN).
