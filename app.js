@@ -605,8 +605,10 @@ document.getElementById("btn-paste-parse").addEventListener("click", () => {
   }
 });
 
-document.getElementById("btn-hk-quickadd").addEventListener("click", () =>
-  openExpenseDialog(null));
+/* Guarded: if index.html and app.js ever deploy out of step, a missing
+   button must not stop the rest of the app from booting. */
+const hkQuickAdd = document.getElementById("btn-hk-quickadd");
+if (hkQuickAdd) hkQuickAdd.addEventListener("click", () => openExpenseDialog(null));
 
 /* Drag & drop onto the upload card feeds the same parse flow. */
 const uploadCard = document.getElementById("upload-card");
