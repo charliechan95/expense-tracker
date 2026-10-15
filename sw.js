@@ -3,10 +3,10 @@
    Navigations go network-first (so updates reach the user);
    static assets are cache-first. Cross-origin (CDNs, Supabase)
    always hits the network. */
-const CACHE = "expense-tracker-v1";
+const CACHE = "expense-tracker-v2";
 const ASSETS = [
   "./", "./index.html", "./style.css",
-  "./db.js", "./categorize.js", "./importers.js",
+  "./i18n.js", "./db.js", "./categorize.js", "./importers.js",
   "./config.js", "./sb.js", "./sync.js", "./app.js",
   "./manifest.json", "./icon-192.png", "./icon-512.png",
 ];
