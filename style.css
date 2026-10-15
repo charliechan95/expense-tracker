@@ -409,3 +409,11 @@ body.signed-out #fab { display: none; }
   .tbl th, .tbl td { padding: 0.65rem 0.45rem; }
   #fab { right: 1rem; bottom: 1rem; }
 }
+
+/* Language switch (EN / 繁中) in the header */
+.lang-switch { display: flex; gap: 0.35rem; margin-left: auto; }
+.lang-switch button { border: 1px solid var(--line); background: transparent;
+  color: var(--ink-soft); border-radius: 8px; padding: 0.3rem 0.65rem;
+  font-size: 0.85rem; cursor: pointer; }
+.lang-switch button.active { background: var(--ink); color: var(--paper);
+  border-color: transparent; }
