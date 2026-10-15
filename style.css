@@ -150,6 +150,14 @@ h2 {
 }
 .legend-row .amount { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
 .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.legend-ico {
+  width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--cat, var(--muted));
+  background: color-mix(in srgb, var(--cat, var(--muted)) 11%, white);
+  border: 1px solid color-mix(in srgb, var(--cat, var(--muted)) 22%, transparent);
+}
+.legend-ico svg { width: 14px; height: 14px; }
 
 .bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding-top: 0.5rem; }
 .bar {
