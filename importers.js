@@ -127,7 +127,9 @@ const Importers = {
     if (name.endsWith(".xlsx")) {
       // SheetJS from CDN
       if (typeof XLSX === "undefined") {
-        throw new Error("xlsx library not loaded — check internet connection.");
+        const err = new Error("xlsx library not loaded — check internet connection.");
+        err.code = "xlsx_missing";
+        throw err;
       }
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
