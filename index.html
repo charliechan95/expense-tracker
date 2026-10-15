@@ -21,66 +21,70 @@
 <header class="topbar">
   <div class="brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
-    <span>Expense Tracker</span>
+    <span data-i18n="brand">Expense Tracker</span>
   </div>
   <nav class="tabs">
     <button data-tab="dashboard" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
-      <span>Dashboard</span>
+      <span data-i18n="tab_dashboard">Dashboard</span>
     </button>
     <button data-tab="expenses">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h2.5M4 12h2.5M4 17.5h2.5M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/></svg>
-      <span>Expenses</span>
+      <span data-i18n="tab_expenses">Expenses</span>
     </button>
     <button data-tab="budgets">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
-      <span>Budgets</span>
+      <span data-i18n="tab_budgets">Budgets</span>
     </button>
     <button data-tab="import">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10.5M7.5 9.5L12 5l4.5 4.5"/><path d="M4.5 16v2.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
-      <span>Import</span>
+      <span data-i18n="tab_import">Import</span>
     </button>
-    <button id="acct-chip" class="acct-chip" hidden title="Account — open settings"></button>
-    <button id="btn-settings" title="Settings">
+    <button id="acct-chip" class="acct-chip" hidden title="Account — open settings" data-i18n-title="tt_account"></button>
+    <button id="btn-settings" title="Settings" data-i18n-title="tt_settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><path d="M9.5 5.5v4M15 10v4M10.5 14.5v4"/></svg>
     </button>
   </nav>
+  <div class="lang-switch">
+    <button type="button" data-lang-btn="zh">繁中</button>
+    <button type="button" data-lang-btn="en">EN</button>
+  </div>
 </header>
 <main class="container">
 
   <!-- Dashboard -->
   <section id="view-dashboard" class="view active">
     <div class="toolbar">
-      <h1>Dashboard</h1>
-      <label class="month-pick">Month
-        <select id="dash-month"><option value="">All time</option></select>
+      <h1><span data-i18n="tab_dashboard">Dashboard</span></h1>
+      <label class="month-pick"><span data-i18n="lbl_month">Month</span>
+        <select id="dash-month"><option value="" data-i18n="opt_all_time">All time</option></select>
       </label>
     </div>
 
     <div id="review-banner" class="banner" style="display:none">
       <span id="review-banner-text"></span>
-      <button id="review-banner-go" class="primary">Review now</button>
+      <button id="review-banner-go" class="primary" data-i18n="btn_review_now">Review now</button>
     </div>
 
     <section class="hero-cards">
       <div class="card hero">
         <div class="card-num" id="dash-total">0.00</div>
-        <div class="card-label">Spent <span id="dash-month-label"></span></div>
+        <div class="card-label"><span data-i18n="lbl_spent">Spent</span> <span id="dash-month-label"></span></div>
         <div class="delta" id="dash-delta"></div>
       </div>
       <div class="card hero">
         <div class="card-num" id="dash-count">0</div>
-        <div class="card-label">Transactions</div>
+        <div class="card-label"><span data-i18n="lbl_transactions">Transactions</span></div>
       </div>
       <div class="card hero">
         <div class="card-num cat-line" id="dash-topcat">—</div>
-        <div class="card-label">Top category</div>
+        <div class="card-label"><span data-i18n="lbl_topcat">Top category</span></div>
       </div>
     </section>
 
     <div class="two-col">
       <section class="card">
-        <h2>By category</h2>
+        <h2 data-i18n="sec_bycat">By category</h2>
         <div class="donut-wrap">
           <svg id="donut" viewBox="0 0 140 140" width="150" height="150"></svg>
           <div class="donut-center">
@@ -91,13 +95,13 @@
         <div id="cat-legend"></div>
       </section>
       <section class="card">
-        <h2>Last 30 days</h2>
+        <h2 data-i18n="sec_last30">Last 30 days</h2>
         <div id="bars" class="bars"></div>
       </section>
     </div>
 
     <section class="card">
-      <h2>Spending by category</h2>
+      <h2 data-i18n="sec_spendby">Spending by category</h2>
       <div id="cat-rows"></div>
     </section>
   </section>
@@ -105,32 +109,32 @@
   <!-- Expenses -->
   <section id="view-expenses" class="view">
     <div class="toolbar">
-      <h1>Expenses</h1>
+      <h1><span data-i18n="tab_expenses">Expenses</span></h1>
       <div class="chips" id="expense-chips">
-        <button class="chip active" data-chip="all">All</button>
-        <button class="chip warn" data-chip="review">Needs review <span id="chip-review-n"></span></button>
+        <button class="chip active" data-chip="all" data-i18n="chip_all">All</button>
+        <button class="chip warn" data-chip="review"><span data-i18n="chip_review">Needs review</span> <span id="chip-review-n"></span></button>
       </div>
     </div>
     <div class="toolbar">
       <div class="search">
-        <input type="text" id="f-q" placeholder="Search merchant…">
+        <input type="text" id="f-q" placeholder="Search merchant…" data-i18n-ph="ph_search">
         <select id="f-platform"><option value="">All platforms</option></select>
         <select id="f-category"><option value="">All categories</option></select>
         <input type="month" id="f-month">
-        <button id="f-apply">Filter</button>
+        <button id="f-apply" data-i18n="btn_filter">Filter</button>
       </div>
-      <button id="btn-new-expense" class="primary">+ Add expense</button>
+      <button id="btn-new-expense" class="primary">+ <span data-i18n="btn_add_expense">Add expense</span></button>
     </div>
     <div id="bulk-bar" class="bulk-bar" style="display:none">
       <span id="bulk-count">0 selected</span>
       <select id="bulk-cat"></select>
-      <button id="bulk-apply" class="primary">Apply category</button>
+      <button id="bulk-apply" class="primary" data-i18n="btn_apply_cat">Apply category</button>
     </div>
     <table class="tbl">
       <thead><tr>
         <th class="bulk-col" style="display:none"><input type="checkbox" id="bulk-all"></th>
-        <th>Date</th><th>Merchant</th><th>Category</th>
-        <th>Platform</th><th class="amount">Amount</th><th></th>
+        <th data-i18n="th_date">Date</th><th data-i18n="th_merchant">Merchant</th><th data-i18n="th_category">Category</th>
+        <th data-i18n="th_platform">Platform</th><th class="amount" data-i18n="th_amount">Amount</th><th></th>
       </tr></thead>
       <tbody id="expense-rows"></tbody>
     </table>
@@ -139,66 +143,66 @@
   <!-- Budgets -->
   <section id="view-budgets" class="view">
     <div class="toolbar">
-      <h1>Budgets</h1>
-      <label class="month-pick">Month
+      <h1><span data-i18n="tab_budgets">Budgets</span></h1>
+      <label class="month-pick"><span data-i18n="lbl_month">Month</span>
         <select id="budget-month"></select>
       </label>
     </div>
-    <p class="muted">Set a monthly budget per category. Spending is tracked against it automatically.</p>
+    <p class="muted" data-i18n="bud_hint">Set a monthly budget per category. Spending is tracked against it automatically.</p>
     <div id="budget-rows"></div>
   </section>
 
   <!-- Import -->
   <section id="view-import" class="view">
-    <h1>Import bills</h1>
-    <p class="muted">Export from your phone app, then upload the file here.
+    <h1 data-i18n="imp_title">Import bills</h1>
+    <p class="muted" data-i18n="imp_intro">Export from your phone app, then upload the file here.
     Parsed entirely in your browser — nothing is uploaded anywhere.</p>
     <div class="two-col">
       <section class="card">
-        <h2>WeChat Pay <span class="muted">— mainland RMB wallet</span></h2>
+        <h2>WeChat Pay <span class="muted" data-i18n="wechat_sub">— mainland RMB wallet</span></h2>
         <ol class="steps">
-          <li>WeChat → <b>我 (Me)</b> → <b>服务 (Services)</b> → <b>钱包 (Wallet)</b></li>
-          <li>Tap <b>账单 (Bill)</b> top-right</li>
-          <li>Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b></li>
-          <li>Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates</li>
-          <li>Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download</li>
-          <li>If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+          <li data-i18n-html="step_wc_1">WeChat → <b>我 (Me)</b> → <b>服务 (Services)</b> → <b>钱包 (Wallet)</b></li>
+          <li data-i18n-html="step_wc_2">Tap <b>账单 (Bill)</b> top-right</li>
+          <li data-i18n-html="step_wc_3">Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b></li>
+          <li data-i18n-html="step_wc_4">Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates</li>
+          <li data-i18n-html="step_wc_5">Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download</li>
+          <li data-i18n-html="step_wc_6">If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
-        <p class="muted">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
+        <p class="muted" data-i18n-html="wechat_hk_note">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
       </section>
       <section class="card">
-        <h2>Alipay <span class="muted">— mainland</span></h2>
+        <h2>Alipay <span class="muted" data-i18n="alipay_sub">— mainland</span></h2>
         <ol class="steps">
-          <li>Alipay → <b>我的 (Me)</b> → <b>账单 (Bill)</b></li>
-          <li>Tap <b>···</b> top-right → <b>开具交易流水证明</b></li>
-          <li>Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates</li>
-          <li>Wait for the message → download the file</li>
-          <li>Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+          <li data-i18n-html="step_al_1">Alipay → <b>我的 (Me)</b> → <b>账单 (Bill)</b></li>
+          <li data-i18n-html="step_al_2">Tap <b>···</b> top-right → <b>开具交易流水证明</b></li>
+          <li data-i18n-html="step_al_3">Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates</li>
+          <li data-i18n-html="step_al_4">Wait for the message → download the file</li>
+          <li data-i18n-html="step_al_5">Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
       </section>
     </div>
     <section class="card">
-      <h2>Upload</h2>
+      <h2 data-i18n="lbl_upload">Upload</h2>
       <div class="toolbar">
         <input type="file" id="f-file" accept=".csv,.xlsx">
-        <button id="btn-import" class="primary">Parse file</button>
+        <button id="btn-import" class="primary" data-i18n="btn_parse">Parse file</button>
       </div>
       <div id="import-result" class="muted"></div>
     </section>
     <section class="card" id="review-card" style="display:none">
-      <h2>Review import</h2>
+      <h2 data-i18n="rev_title">Review import</h2>
       <p class="muted" id="review-summary"></p>
       <table class="tbl">
         <thead><tr>
           <th><input type="checkbox" id="review-all" checked></th>
-          <th>Date</th><th>Merchant</th><th class="amount">Amount</th>
-          <th>Category</th><th></th>
+          <th data-i18n="th_date">Date</th><th data-i18n="th_merchant">Merchant</th><th class="amount" data-i18n="th_amount">Amount</th>
+          <th data-i18n="th_category">Category</th><th></th>
         </tr></thead>
         <tbody id="review-rows"></tbody>
       </table>
       <div class="dlg-actions">
-        <button id="btn-review-cancel">Cancel</button>
-        <button id="btn-review-confirm" class="primary">Confirm import</button>
+        <button id="btn-review-cancel" data-i18n="btn_cancel">Cancel</button>
+        <button id="btn-review-confirm" class="primary" data-i18n="btn_confirm_import">Confirm import</button>
       </div>
     </section>
   </section>
@@ -211,80 +215,81 @@
     <div class="auth-brand">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
     </div>
-    <h1>Expense Tracker</h1>
-    <p class="muted">Sign in to keep your expenses synced across your devices.</p>
+    <h1 data-i18n="brand">Expense Tracker</h1>
+    <p class="muted" data-i18n="auth_intro">Sign in to keep your expenses synced across your devices.</p>
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <label>Email
+    <label><span data-i18n="lbl_email">Email</span>
       <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com"></label>
-    <label>Password
+    <label><span data-i18n="lbl_password">Password</span>
       <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••"></label>
     <div class="auth-actions">
-      <button id="btn-signin" class="primary">Sign in</button>
-      <button id="btn-signup">Create account</button>
+      <button id="btn-signin" class="primary" data-i18n="auth_signin">Sign in</button>
+      <button id="btn-signup" data-i18n="auth_signup">Create account</button>
     </div>
-    <p class="muted auth-note">Your data stays private — only you can see it.</p>
+    <p class="muted auth-note" data-i18n="auth_note">Your data stays private — only you can see it.</p>
   </div>
 </section>
 
-<button id="fab" title="Add expense"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<button id="fab" title="Add expense" data-i18n-title="tt_add_expense"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="toast" class="toast"></div>
 
 <dialog id="dlg-expense">
   <form method="dialog" id="frm-expense">
     <h2 id="dlg-expense-title">New expense</h2>
-    <label>Amount <input type="number" step="0.01" min="0.01"
+    <label><span data-i18n="lbl_amount">Amount</span> <input type="number" step="0.01" min="0.01"
            name="amount" id="f-amount" required></label>
-    <label>Currency
+    <label><span data-i18n="lbl_currency">Currency</span>
       <select name="currency" id="f-currency">
         <option value="CNY">CNY ¥</option>
         <option value="HKD">HKD HK$</option>
       </select></label>
-    <label>Date <input type="date" name="expense_date" id="f-date" required></label>
-    <label>Category <select name="category" id="f-cat"></select>
+    <label><span data-i18n="th_date">Date</span> <input type="date" name="expense_date" id="f-date" required></label>
+    <label><span data-i18n="th_category">Category</span> <select name="category" id="f-cat"></select>
       <div class="muted" id="cat-hint" style="display:none"></div></label>
-    <label>Platform <select name="platform" id="f-plat"></select></label>
-    <label>Merchant <input name="merchant" id="f-merchant"
-           placeholder="e.g. Starbucks" autocomplete="off"></label>
-    <label>Description <input name="description"></label>
+    <label><span data-i18n="th_platform">Platform</span> <select name="platform" id="f-plat"></select></label>
+    <label><span data-i18n="th_merchant">Merchant</span> <input name="merchant" id="f-merchant"
+           placeholder="e.g. Starbucks" data-i18n-ph="ph_merchant" autocomplete="off"></label>
+    <label><span data-i18n="lbl_description">Description</span> <input name="description"></label>
     <div class="dlg-actions">
-      <button type="submit" class="primary">Save</button>
-      <button type="button" id="btn-cancel-expense">Cancel</button>
+      <button type="submit" class="primary" data-i18n="btn_save">Save</button>
+      <button type="button" id="btn-cancel-expense" data-i18n="btn_cancel">Cancel</button>
     </div>
   </form>
 </dialog>
 
 <dialog id="dlg-settings">
   <form method="dialog" id="frm-settings">
-    <h2>Settings</h2>
-    <label>Display currency
+    <h2 data-i18n="set_title">Settings</h2>
+    <label><span data-i18n="set_ccy">Display currency</span>
       <select id="set-ccy">
         <option value="CNY">CNY (¥)</option>
         <option value="HKD">HKD (HK$)</option>
       </select></label>
-    <label>CNY → HKD rate
+    <label><span data-i18n="set_rate">CNY → HKD rate</span>
       <input id="set-rate" type="number" step="0.0001" min="0">
-      <div class="muted">Used to convert between CNY and HKD in totals.</div></label>
-    <h3>Backup</h3>
+      <div class="muted" data-i18n="set_rate_hint">Used to convert between CNY and HKD in totals.</div></label>
+    <h3 data-i18n="set_backup">Backup</h3>
     <div class="toolbar">
-      <button type="button" id="btn-export-json">Export backup (JSON)</button>
-      <label class="file-btn">Restore backup
+      <button type="button" id="btn-export-json" data-i18n="btn_export_json">Export backup (JSON)</button>
+      <label class="file-btn"><span data-i18n="lbl_restore">Restore backup</span>
         <input type="file" id="f-restore" accept=".json" hidden></label>
     </div>
-    <h3>Backend</h3>
+    <h3 data-i18n="set_backend">Backend</h3>
     <div class="backend-row">
       <span id="backend-status" class="status-pill">Local only</span>
-      <button type="button" id="btn-sync-now">Sync now</button>
-      <button type="button" id="btn-signout" style="display:none">Sign out</button>
+      <button type="button" id="btn-sync-now" data-i18n="btn_sync_now">Sync now</button>
+      <button type="button" id="btn-signout" style="display:none" data-i18n="btn_signout">Sign out</button>
     </div>
     <p class="muted" id="backend-detail"></p>
-    <h3 class="danger-zone">Danger zone</h3>
-    <button type="button" id="btn-wipe" class="danger">Delete all data</button>
+    <h3 class="danger-zone" data-i18n="set_danger">Danger zone</h3>
+    <button type="button" id="btn-wipe" class="danger" data-i18n="btn_wipe">Delete all data</button>
     <div class="dlg-actions">
-      <button type="submit" class="primary">Done</button>
+      <button type="submit" class="primary" data-i18n="btn_done">Done</button>
     </div>
   </form>
 </dialog>
 
+<script src="i18n.js"></script>
 <script src="db.js"></script>
 <script src="categorize.js"></script>
 <script src="importers.js"></script>
