@@ -403,7 +403,8 @@ function startReview(platform, expenses) {
 }
 
 async function parseSelectedFile(fileOverride) {
-  const file = fileOverride || document.getElementById("f-file").files[0];
+  const input = document.getElementById("f-file");
+  const file = fileOverride || input.files[0];
   const out = document.getElementById("import-result");
   if (!file) { out.textContent = t("imp_choose_first"); return; }
   out.textContent = t("imp_parsing");
@@ -413,24 +414,24 @@ async function parseSelectedFile(fileOverride) {
       out.textContent = t("imp_no_detect");
       return;
     }
+    if (!expenses.length) {
+      out.textContent = t("imp_no_rows");
+      return;
+    }
     out.textContent = "";
     startReview(platform, expenses);
   } catch (err) {
     out.textContent = t("imp_failed") + (err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") : err.message);
+  } finally {
+    // Always reset the input so choosing the same file again re-parses.
+    input.value = "";
   }
 }
 
-/* Note: wrapped so the click Event never lands in parseSelectedFile's fileOverride. */
+/* Single upload entry: pick a file, then press "Parse file" (or drop the
+   file onto the card). Note: wrapped so the click Event never lands in
+   parseSelectedFile's fileOverride. */
 document.getElementById("btn-import").addEventListener("click", () => parseSelectedFile());
-/* Selecting a file parses it immediately — one less click. */
-document.getElementById("f-file").addEventListener("change", () => {
-  if (document.getElementById("f-file").files[0]) parseSelectedFile();
-});
-/* The per-platform "Choose bill file" doors funnel into the same input. */
-document.getElementById("btn-pick-wechat").addEventListener("click", () =>
-  document.getElementById("f-file").click());
-document.getElementById("btn-pick-alipay").addEventListener("click", () =>
-  document.getElementById("f-file").click());
 
 /* Sum of checked, non-duplicate rows in the staged review. */
 function updateReviewTotal() {
@@ -535,7 +536,7 @@ document.getElementById("btn-review-confirm").addEventListener("click", () => {
       expenseIds: ids,
       count: added,
       total,
-      currency: "CNY",
+      currency: reviewBatch.rows.length ? reviewBatch.rows[0].currency : "CNY",
       dupes,
     });
   }
@@ -586,7 +587,7 @@ function undoImportBatch(id) {
   toast(t("hist_undone").replace("{n}", String(removed)));
 }
 
-/* ---- Paste-text import (Hong Kong wallets) -------------------------------- */
+/* ---- Paste-text import (mainland bills, CSV text) ------------------------- */
 document.getElementById("btn-paste-parse").addEventListener("click", () => {
   const ta = document.getElementById("paste-text");
   const out = document.getElementById("paste-result");
@@ -604,7 +605,7 @@ document.getElementById("btn-paste-parse").addEventListener("click", () => {
   }
 });
 
-document.getElementById("btn-paste-quickadd").addEventListener("click", () =>
+document.getElementById("btn-hk-quickadd").addEventListener("click", () =>
   openExpenseDialog(null));
 
 /* Drag & drop onto the upload card feeds the same parse flow. */
