@@ -156,7 +156,8 @@
   <section id="view-import" class="view">
     <h1 data-i18n="imp_title">Import bills</h1>
     <p class="muted" data-i18n="imp_intro">Export from your phone app, then upload the file here.
-    Parsed entirely in your browser — nothing is uploaded anywhere.</p>
+    The bill file is parsed on this device and is never uploaded.</p>
+    <p class="muted" data-i18n="imp_scope">The steps below are for the mainland WeChat Pay and Alipay apps; menu names may differ slightly by app version.</p>
     <div class="two-col">
       <section class="card">
         <h2>WeChat Pay <span class="muted" data-i18n="wechat_sub">— mainland RMB wallet</span></h2>
@@ -166,12 +167,9 @@
           <li data-i18n-html="step_wc_3">Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b></li>
           <li data-i18n-html="step_wc_4">Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates</li>
           <li data-i18n-html="step_wc_5">Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download</li>
-          <li data-i18n-html="step_wc_6">If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+          <li data-i18n-html="step_wc_6">Upload the <b>.xlsx</b> / <b>.csv</b> file in the Upload box below</li>
         </ol>
         <p class="muted" data-i18n-html="wechat_hk_note">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
-        <div class="dlg-actions">
-          <button id="btn-pick-wechat" class="primary" data-i18n="btn_pick_file">Choose bill file</button>
-        </div>
       </section>
       <section class="card">
         <h2>Alipay <span class="muted" data-i18n="alipay_sub">— mainland</span></h2>
@@ -182,9 +180,6 @@
           <li data-i18n-html="step_al_4">Wait for the message → download the file</li>
           <li data-i18n-html="step_al_5">Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
-        <div class="dlg-actions">
-          <button id="btn-pick-alipay" class="primary" data-i18n="btn_pick_file">Choose bill file</button>
-        </div>
       </section>
     </div>
     <section class="card" id="upload-card">
@@ -199,11 +194,17 @@
     <section class="card">
       <h2 data-i18n="hk_title">Hong Kong wallets</h2>
       <p class="muted" data-i18n-html="hk_note">WeChat Pay HK and AlipayHK do <b>not</b> offer bill-file export.</p>
+      <div class="toolbar">
+        <button id="btn-hk-quickadd" data-i18n="btn_add_expense">Add expense</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="paste_title">Paste CSV text</h2>
+      <p class="muted" data-i18n="paste_note">For mainland bills only: if you opened a bill file and copied its contents, paste the CSV text here instead of uploading the file.</p>
       <label><span data-i18n="lbl_paste">Paste bill rows</span>
         <textarea id="paste-text" rows="4" data-i18n-ph="paste_ph" placeholder="Paste exported CSV rows here…"></textarea></label>
       <div class="toolbar">
         <button id="btn-paste-parse" class="primary" data-i18n="btn_paste_parse">Parse pasted text</button>
-        <button id="btn-paste-quickadd" data-i18n="btn_add_expense">Add expense</button>
       </div>
       <div id="paste-result" class="muted"></div>
     </section>
