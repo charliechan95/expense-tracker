@@ -169,6 +169,9 @@
           <li data-i18n-html="step_wc_6">If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
         <p class="muted" data-i18n-html="wechat_hk_note">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
+        <div class="dlg-actions">
+          <button id="btn-pick-wechat" class="primary" data-i18n="btn_pick_file">Choose bill file</button>
+        </div>
       </section>
       <section class="card">
         <h2>Alipay <span class="muted" data-i18n="alipay_sub">— mainland</span></h2>
@@ -179,19 +182,35 @@
           <li data-i18n-html="step_al_4">Wait for the message → download the file</li>
           <li data-i18n-html="step_al_5">Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
+        <div class="dlg-actions">
+          <button id="btn-pick-alipay" class="primary" data-i18n="btn_pick_file">Choose bill file</button>
+        </div>
       </section>
     </div>
-    <section class="card">
+    <section class="card" id="upload-card">
       <h2 data-i18n="lbl_upload">Upload</h2>
       <div class="toolbar">
         <input type="file" id="f-file" accept=".csv,.xlsx">
         <button id="btn-import" class="primary" data-i18n="btn_parse">Parse file</button>
       </div>
+      <p class="muted" data-i18n="imp_drop_hint">…or drag &amp; drop a bill file here</p>
       <div id="import-result" class="muted"></div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="hk_title">Hong Kong wallets</h2>
+      <p class="muted" data-i18n-html="hk_note">WeChat Pay HK and AlipayHK do <b>not</b> offer bill-file export.</p>
+      <label><span data-i18n="lbl_paste">Paste bill rows</span>
+        <textarea id="paste-text" rows="4" data-i18n-ph="paste_ph" placeholder="Paste exported CSV rows here…"></textarea></label>
+      <div class="toolbar">
+        <button id="btn-paste-parse" class="primary" data-i18n="btn_paste_parse">Parse pasted text</button>
+        <button id="btn-paste-quickadd" data-i18n="btn_add_expense">Add expense</button>
+      </div>
+      <div id="paste-result" class="muted"></div>
     </section>
     <section class="card" id="review-card" style="display:none">
       <h2 data-i18n="rev_title">Review import</h2>
       <p class="muted" id="review-summary"></p>
+      <p class="muted" id="review-total"></p>
       <table class="tbl">
         <thead><tr>
           <th><input type="checkbox" id="review-all" checked></th>
@@ -204,6 +223,10 @@
         <button id="btn-review-cancel" data-i18n="btn_cancel">Cancel</button>
         <button id="btn-review-confirm" class="primary" data-i18n="btn_confirm_import">Confirm import</button>
       </div>
+    </section>
+    <section class="card" id="import-history-card">
+      <h2 data-i18n="hist_title">Import history</h2>
+      <div id="import-history"></div>
     </section>
   </section>
 
