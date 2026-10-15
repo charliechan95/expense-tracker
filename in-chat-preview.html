@@ -427,6 +427,14 @@ body.signed-out #fab { display: none; }
   #fab { right: 1rem; bottom: 1rem; }
 }
 
+/* Language switch (EN / 繁中) in the header */
+.lang-switch { display: flex; gap: 0.35rem; margin-left: auto; }
+.lang-switch button { border: 1px solid var(--line); background: transparent;
+  color: var(--ink-soft); border-radius: 8px; padding: 0.3rem 0.65rem;
+  font-size: 0.85rem; cursor: pointer; }
+.lang-switch button.active { background: var(--ink); color: var(--paper);
+  border-color: transparent; }
+
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -434,66 +442,70 @@ body.signed-out #fab { display: none; }
 <header class="topbar">
   <div class="brand">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
-    <span>Expense Tracker</span>
+    <span data-i18n="brand">Expense Tracker</span>
   </div>
   <nav class="tabs">
     <button data-tab="dashboard" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
-      <span>Dashboard</span>
+      <span data-i18n="tab_dashboard">Dashboard</span>
     </button>
     <button data-tab="expenses">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h2.5M4 12h2.5M4 17.5h2.5M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/></svg>
-      <span>Expenses</span>
+      <span data-i18n="tab_expenses">Expenses</span>
     </button>
     <button data-tab="budgets">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
-      <span>Budgets</span>
+      <span data-i18n="tab_budgets">Budgets</span>
     </button>
     <button data-tab="import">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10.5M7.5 9.5L12 5l4.5 4.5"/><path d="M4.5 16v2.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
-      <span>Import</span>
+      <span data-i18n="tab_import">Import</span>
     </button>
-    <button id="acct-chip" class="acct-chip" hidden title="Account — open settings"></button>
-    <button id="btn-settings" title="Settings">
+    <button id="acct-chip" class="acct-chip" hidden title="Account — open settings" data-i18n-title="tt_account"></button>
+    <button id="btn-settings" title="Settings" data-i18n-title="tt_settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><path d="M9.5 5.5v4M15 10v4M10.5 14.5v4"/></svg>
     </button>
   </nav>
+  <div class="lang-switch">
+    <button type="button" data-lang-btn="zh">繁中</button>
+    <button type="button" data-lang-btn="en">EN</button>
+  </div>
 </header>
 <main class="container">
 
   <!-- Dashboard -->
   <section id="view-dashboard" class="view active">
     <div class="toolbar">
-      <h1>Dashboard</h1>
-      <label class="month-pick">Month
-        <select id="dash-month"><option value="">All time</option></select>
+      <h1><span data-i18n="tab_dashboard">Dashboard</span></h1>
+      <label class="month-pick"><span data-i18n="lbl_month">Month</span>
+        <select id="dash-month"><option value="" data-i18n="opt_all_time">All time</option></select>
       </label>
     </div>
 
     <div id="review-banner" class="banner" style="display:none">
       <span id="review-banner-text"></span>
-      <button id="review-banner-go" class="primary">Review now</button>
+      <button id="review-banner-go" class="primary" data-i18n="btn_review_now">Review now</button>
     </div>
 
     <section class="hero-cards">
       <div class="card hero">
         <div class="card-num" id="dash-total">0.00</div>
-        <div class="card-label">Spent <span id="dash-month-label"></span></div>
+        <div class="card-label"><span data-i18n="lbl_spent">Spent</span> <span id="dash-month-label"></span></div>
         <div class="delta" id="dash-delta"></div>
       </div>
       <div class="card hero">
         <div class="card-num" id="dash-count">0</div>
-        <div class="card-label">Transactions</div>
+        <div class="card-label"><span data-i18n="lbl_transactions">Transactions</span></div>
       </div>
       <div class="card hero">
         <div class="card-num cat-line" id="dash-topcat">—</div>
-        <div class="card-label">Top category</div>
+        <div class="card-label"><span data-i18n="lbl_topcat">Top category</span></div>
       </div>
     </section>
 
     <div class="two-col">
       <section class="card">
-        <h2>By category</h2>
+        <h2 data-i18n="sec_bycat">By category</h2>
         <div class="donut-wrap">
           <svg id="donut" viewBox="0 0 140 140" width="150" height="150"></svg>
           <div class="donut-center">
@@ -504,13 +516,13 @@ body.signed-out #fab { display: none; }
         <div id="cat-legend"></div>
       </section>
       <section class="card">
-        <h2>Last 30 days</h2>
+        <h2 data-i18n="sec_last30">Last 30 days</h2>
         <div id="bars" class="bars"></div>
       </section>
     </div>
 
     <section class="card">
-      <h2>Spending by category</h2>
+      <h2 data-i18n="sec_spendby">Spending by category</h2>
       <div id="cat-rows"></div>
     </section>
   </section>
@@ -518,32 +530,32 @@ body.signed-out #fab { display: none; }
   <!-- Expenses -->
   <section id="view-expenses" class="view">
     <div class="toolbar">
-      <h1>Expenses</h1>
+      <h1><span data-i18n="tab_expenses">Expenses</span></h1>
       <div class="chips" id="expense-chips">
-        <button class="chip active" data-chip="all">All</button>
-        <button class="chip warn" data-chip="review">Needs review <span id="chip-review-n"></span></button>
+        <button class="chip active" data-chip="all" data-i18n="chip_all">All</button>
+        <button class="chip warn" data-chip="review"><span data-i18n="chip_review">Needs review</span> <span id="chip-review-n"></span></button>
       </div>
     </div>
     <div class="toolbar">
       <div class="search">
-        <input type="text" id="f-q" placeholder="Search merchant…">
+        <input type="text" id="f-q" placeholder="Search merchant…" data-i18n-ph="ph_search">
         <select id="f-platform"><option value="">All platforms</option></select>
         <select id="f-category"><option value="">All categories</option></select>
         <input type="month" id="f-month">
-        <button id="f-apply">Filter</button>
+        <button id="f-apply" data-i18n="btn_filter">Filter</button>
       </div>
-      <button id="btn-new-expense" class="primary">+ Add expense</button>
+      <button id="btn-new-expense" class="primary">+ <span data-i18n="btn_add_expense">Add expense</span></button>
     </div>
     <div id="bulk-bar" class="bulk-bar" style="display:none">
       <span id="bulk-count">0 selected</span>
       <select id="bulk-cat"></select>
-      <button id="bulk-apply" class="primary">Apply category</button>
+      <button id="bulk-apply" class="primary" data-i18n="btn_apply_cat">Apply category</button>
     </div>
     <table class="tbl">
       <thead><tr>
         <th class="bulk-col" style="display:none"><input type="checkbox" id="bulk-all"></th>
-        <th>Date</th><th>Merchant</th><th>Category</th>
-        <th>Platform</th><th class="amount">Amount</th><th></th>
+        <th data-i18n="th_date">Date</th><th data-i18n="th_merchant">Merchant</th><th data-i18n="th_category">Category</th>
+        <th data-i18n="th_platform">Platform</th><th class="amount" data-i18n="th_amount">Amount</th><th></th>
       </tr></thead>
       <tbody id="expense-rows"></tbody>
     </table>
@@ -552,66 +564,66 @@ body.signed-out #fab { display: none; }
   <!-- Budgets -->
   <section id="view-budgets" class="view">
     <div class="toolbar">
-      <h1>Budgets</h1>
-      <label class="month-pick">Month
+      <h1><span data-i18n="tab_budgets">Budgets</span></h1>
+      <label class="month-pick"><span data-i18n="lbl_month">Month</span>
         <select id="budget-month"></select>
       </label>
     </div>
-    <p class="muted">Set a monthly budget per category. Spending is tracked against it automatically.</p>
+    <p class="muted" data-i18n="bud_hint">Set a monthly budget per category. Spending is tracked against it automatically.</p>
     <div id="budget-rows"></div>
   </section>
 
   <!-- Import -->
   <section id="view-import" class="view">
-    <h1>Import bills</h1>
-    <p class="muted">Export from your phone app, then upload the file here.
+    <h1 data-i18n="imp_title">Import bills</h1>
+    <p class="muted" data-i18n="imp_intro">Export from your phone app, then upload the file here.
     Parsed entirely in your browser — nothing is uploaded anywhere.</p>
     <div class="two-col">
       <section class="card">
-        <h2>WeChat Pay <span class="muted">— mainland RMB wallet</span></h2>
+        <h2>WeChat Pay <span class="muted" data-i18n="wechat_sub">— mainland RMB wallet</span></h2>
         <ol class="steps">
-          <li>WeChat → <b>我 (Me)</b> → <b>服务 (Services)</b> → <b>钱包 (Wallet)</b></li>
-          <li>Tap <b>账单 (Bill)</b> top-right</li>
-          <li>Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b></li>
-          <li>Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates</li>
-          <li>Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download</li>
-          <li>If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+          <li data-i18n-html="step_wc_1">WeChat → <b>我 (Me)</b> → <b>服务 (Services)</b> → <b>钱包 (Wallet)</b></li>
+          <li data-i18n-html="step_wc_2">Tap <b>账单 (Bill)</b> top-right</li>
+          <li data-i18n-html="step_wc_3">Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b></li>
+          <li data-i18n-html="step_wc_4">Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates</li>
+          <li data-i18n-html="step_wc_5">Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download</li>
+          <li data-i18n-html="step_wc_6">If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
-        <p class="muted">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
+        <p class="muted" data-i18n-html="wechat_hk_note">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
       </section>
       <section class="card">
-        <h2>Alipay <span class="muted">— mainland</span></h2>
+        <h2>Alipay <span class="muted" data-i18n="alipay_sub">— mainland</span></h2>
         <ol class="steps">
-          <li>Alipay → <b>我的 (Me)</b> → <b>账单 (Bill)</b></li>
-          <li>Tap <b>···</b> top-right → <b>开具交易流水证明</b></li>
-          <li>Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates</li>
-          <li>Wait for the message → download the file</li>
-          <li>Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+          <li data-i18n-html="step_al_1">Alipay → <b>我的 (Me)</b> → <b>账单 (Bill)</b></li>
+          <li data-i18n-html="step_al_2">Tap <b>···</b> top-right → <b>开具交易流水证明</b></li>
+          <li data-i18n-html="step_al_3">Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates</li>
+          <li data-i18n-html="step_al_4">Wait for the message → download the file</li>
+          <li data-i18n-html="step_al_5">Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
         </ol>
       </section>
     </div>
     <section class="card">
-      <h2>Upload</h2>
+      <h2 data-i18n="lbl_upload">Upload</h2>
       <div class="toolbar">
         <input type="file" id="f-file" accept=".csv,.xlsx">
-        <button id="btn-import" class="primary">Parse file</button>
+        <button id="btn-import" class="primary" data-i18n="btn_parse">Parse file</button>
       </div>
       <div id="import-result" class="muted"></div>
     </section>
     <section class="card" id="review-card" style="display:none">
-      <h2>Review import</h2>
+      <h2 data-i18n="rev_title">Review import</h2>
       <p class="muted" id="review-summary"></p>
       <table class="tbl">
         <thead><tr>
           <th><input type="checkbox" id="review-all" checked></th>
-          <th>Date</th><th>Merchant</th><th class="amount">Amount</th>
-          <th>Category</th><th></th>
+          <th data-i18n="th_date">Date</th><th data-i18n="th_merchant">Merchant</th><th class="amount" data-i18n="th_amount">Amount</th>
+          <th data-i18n="th_category">Category</th><th></th>
         </tr></thead>
         <tbody id="review-rows"></tbody>
       </table>
       <div class="dlg-actions">
-        <button id="btn-review-cancel">Cancel</button>
-        <button id="btn-review-confirm" class="primary">Confirm import</button>
+        <button id="btn-review-cancel" data-i18n="btn_cancel">Cancel</button>
+        <button id="btn-review-confirm" class="primary" data-i18n="btn_confirm_import">Confirm import</button>
       </div>
     </section>
   </section>
@@ -624,80 +636,444 @@ body.signed-out #fab { display: none; }
     <div class="auth-brand">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
     </div>
-    <h1>Expense Tracker</h1>
-    <p class="muted">Sign in to keep your expenses synced across your devices.</p>
+    <h1 data-i18n="brand">Expense Tracker</h1>
+    <p class="muted" data-i18n="auth_intro">Sign in to keep your expenses synced across your devices.</p>
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <label>Email
+    <label><span data-i18n="lbl_email">Email</span>
       <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com"></label>
-    <label>Password
+    <label><span data-i18n="lbl_password">Password</span>
       <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••"></label>
     <div class="auth-actions">
-      <button id="btn-signin" class="primary">Sign in</button>
-      <button id="btn-signup">Create account</button>
+      <button id="btn-signin" class="primary" data-i18n="auth_signin">Sign in</button>
+      <button id="btn-signup" data-i18n="auth_signup">Create account</button>
     </div>
-    <p class="muted auth-note">Your data stays private — only you can see it.</p>
+    <p class="muted auth-note" data-i18n="auth_note">Your data stays private — only you can see it.</p>
   </div>
 </section>
 
-<button id="fab" title="Add expense"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<button id="fab" title="Add expense" data-i18n-title="tt_add_expense"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
 <div id="toast" class="toast"></div>
 
 <dialog id="dlg-expense">
   <form method="dialog" id="frm-expense">
     <h2 id="dlg-expense-title">New expense</h2>
-    <label>Amount <input type="number" step="0.01" min="0.01"
+    <label><span data-i18n="lbl_amount">Amount</span> <input type="number" step="0.01" min="0.01"
            name="amount" id="f-amount" required></label>
-    <label>Currency
+    <label><span data-i18n="lbl_currency">Currency</span>
       <select name="currency" id="f-currency">
         <option value="CNY">CNY ¥</option>
         <option value="HKD">HKD HK$</option>
       </select></label>
-    <label>Date <input type="date" name="expense_date" id="f-date" required></label>
-    <label>Category <select name="category" id="f-cat"></select>
+    <label><span data-i18n="th_date">Date</span> <input type="date" name="expense_date" id="f-date" required></label>
+    <label><span data-i18n="th_category">Category</span> <select name="category" id="f-cat"></select>
       <div class="muted" id="cat-hint" style="display:none"></div></label>
-    <label>Platform <select name="platform" id="f-plat"></select></label>
-    <label>Merchant <input name="merchant" id="f-merchant"
-           placeholder="e.g. Starbucks" autocomplete="off"></label>
-    <label>Description <input name="description"></label>
+    <label><span data-i18n="th_platform">Platform</span> <select name="platform" id="f-plat"></select></label>
+    <label><span data-i18n="th_merchant">Merchant</span> <input name="merchant" id="f-merchant"
+           placeholder="e.g. Starbucks" data-i18n-ph="ph_merchant" autocomplete="off"></label>
+    <label><span data-i18n="lbl_description">Description</span> <input name="description"></label>
     <div class="dlg-actions">
-      <button type="submit" class="primary">Save</button>
-      <button type="button" id="btn-cancel-expense">Cancel</button>
+      <button type="submit" class="primary" data-i18n="btn_save">Save</button>
+      <button type="button" id="btn-cancel-expense" data-i18n="btn_cancel">Cancel</button>
     </div>
   </form>
 </dialog>
 
 <dialog id="dlg-settings">
   <form method="dialog" id="frm-settings">
-    <h2>Settings</h2>
-    <label>Display currency
+    <h2 data-i18n="set_title">Settings</h2>
+    <label><span data-i18n="set_ccy">Display currency</span>
       <select id="set-ccy">
         <option value="CNY">CNY (¥)</option>
         <option value="HKD">HKD (HK$)</option>
       </select></label>
-    <label>CNY → HKD rate
+    <label><span data-i18n="set_rate">CNY → HKD rate</span>
       <input id="set-rate" type="number" step="0.0001" min="0">
-      <div class="muted">Used to convert between CNY and HKD in totals.</div></label>
-    <h3>Backup</h3>
+      <div class="muted" data-i18n="set_rate_hint">Used to convert between CNY and HKD in totals.</div></label>
+    <h3 data-i18n="set_backup">Backup</h3>
     <div class="toolbar">
-      <button type="button" id="btn-export-json">Export backup (JSON)</button>
-      <label class="file-btn">Restore backup
+      <button type="button" id="btn-export-json" data-i18n="btn_export_json">Export backup (JSON)</button>
+      <label class="file-btn"><span data-i18n="lbl_restore">Restore backup</span>
         <input type="file" id="f-restore" accept=".json" hidden></label>
     </div>
-    <h3>Backend</h3>
+    <h3 data-i18n="set_backend">Backend</h3>
     <div class="backend-row">
       <span id="backend-status" class="status-pill">Local only</span>
-      <button type="button" id="btn-sync-now">Sync now</button>
-      <button type="button" id="btn-signout" style="display:none">Sign out</button>
+      <button type="button" id="btn-sync-now" data-i18n="btn_sync_now">Sync now</button>
+      <button type="button" id="btn-signout" style="display:none" data-i18n="btn_signout">Sign out</button>
     </div>
     <p class="muted" id="backend-detail"></p>
-    <h3 class="danger-zone">Danger zone</h3>
-    <button type="button" id="btn-wipe" class="danger">Delete all data</button>
+    <h3 class="danger-zone" data-i18n="set_danger">Danger zone</h3>
+    <button type="button" id="btn-wipe" class="danger" data-i18n="btn_wipe">Delete all data</button>
     <div class="dlg-actions">
-      <button type="submit" class="primary">Done</button>
+      <button type="submit" class="primary" data-i18n="btn_done">Done</button>
     </div>
   </form>
 </dialog>
 
+<script>
+/* i18n — EN / 繁中 language switch for the expense tracker.
+   UI language only: user data (categories, amounts, merchants) is never
+   translated and the language choice is never synced to the backend.
+   Persisted per browser in localStorage key "exp_lang" (default "en").
+   Architecture mirrors tutorial-centre-tracker/i18n.js, with two small
+   additions: [data-i18n-html] for guidance text (dictionary HTML only)
+   and [data-i18n-title] for tooltips. tPlat() maps platform codes to
+   display labels; platform codes themselves are canonical data. */
+"use strict";
+
+const I18N = {
+  en: {
+    "title": "Expense Tracker",
+    "brand": "Expense Tracker",
+    "tab_dashboard": "Dashboard",
+    "tab_expenses": "Expenses",
+    "tab_budgets": "Budgets",
+    "tab_import": "Import",
+    "lbl_month": "Month",
+    "opt_all_time": "All time",
+    "lbl_spent": "Spent",
+    "dash_in_month": "in {m}",
+    "dash_all_time": "all time",
+    "dash_vs_last": "{p}% vs last month",
+    "dash_first_month": "first month with data",
+    "lbl_transactions": "Transactions",
+    "lbl_topcat": "Top category",
+    "sec_bycat": "By category",
+    "sec_last30": "Last 30 days",
+    "sec_spendby": "Spending by category",
+    "lbl_no_data": "No data yet.",
+    "lbl_no_data_hint": "No data yet — import a bill or add an expense.",
+    "review_banner_p": "{n} transactions need a category — teach the app once, it remembers.",
+    "review_banner_s": "{n} transaction needs a category — teach the app once, it remembers.",
+    "btn_review_now": "Review now",
+    "chip_all": "All",
+    "chip_review": "Needs review",
+    "ph_search": "Search merchant…",
+    "opt_all_platforms": "All platforms",
+    "opt_all_categories": "All categories",
+    "btn_filter": "Filter",
+    "btn_add_expense": "Add expense",
+    "th_date": "Date",
+    "th_merchant": "Merchant",
+    "th_category": "Category",
+    "th_platform": "Platform",
+    "th_amount": "Amount",
+    "exp_empty": "No expenses yet.",
+    "review_empty": "Inbox zero — everything has a category.",
+    "bulk_selected": "{n} selected",
+    "btn_apply_cat": "Apply category",
+    "confirm_del": "Delete this expense?",
+    "bulk_done": "{n} categorized — I'll remember these merchants",
+    "hint_memory": "Suggested from “{m}” — change it if I'm wrong, I'll remember.",
+    "hint_keyword": "Suggested: {cat}",
+    "lbl_needs_review": "needs review",
+    "lbl_duplicate": "duplicate",
+    "dlg_exp_new": "New expense",
+    "dlg_exp_edit": "Edit expense",
+    "lbl_amount": "Amount",
+    "lbl_currency": "Currency",
+    "lbl_description": "Description",
+    "ph_merchant": "e.g. Starbucks",
+    "btn_save": "Save",
+    "btn_cancel": "Cancel",
+    "saved": "Saved",
+    "backup_dl": "Backup downloaded",
+    "backup_restored": "Backup restored",
+    "restore_failed": "Restore failed: ",
+    "backup_invalid": "Not a valid expense-tracker backup file.",
+    "wipe_confirm": "Delete ALL expenses, budgets, memory and settings{note}? This cannot be undone.",
+    "wipe_cloud_note": " (including the synced cloud copy)",
+    "wiped": "All data deleted",
+    "cloud_del_failed": "Cloud delete failed: ",
+    "tt_edit": "Edit",
+    "tt_delete": "Delete",
+    "tt_add_expense": "Add expense",
+    "tt_settings": "Settings",
+    "tt_account": "Account — open settings",
+    "acct_title": "Signed in as {email} — open settings",
+    "bud_hint": "Set a monthly budget per category. Spending is tracked against it automatically.",
+    "bud_spent": "Spent",
+    "bud_of": "of",
+    "bud_budget": "Budget",
+    "bud_over": "Over budget by {a}",
+    "ph_set_budget": "Set budget",
+    "imp_title": "Import bills",
+    "imp_intro": "Export from your phone app, then upload the file here. Parsed entirely in your browser — nothing is uploaded anywhere.",
+    "wechat_sub": "— mainland RMB wallet",
+    "alipay_sub": "— mainland",
+    "step_wc_1": "WeChat → <b>我 (Me)</b> → <b>服务 (Services)</b> → <b>钱包 (Wallet)</b>",
+    "step_wc_2": "Tap <b>账单 (Bill)</b> top-right",
+    "step_wc_3": "Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b>",
+    "step_wc_4": "Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates",
+    "step_wc_5": "Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download",
+    "step_wc_6": "If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below",
+    "wechat_hk_note": "On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.",
+    "step_al_1": "Alipay → <b>我的 (Me)</b> → <b>账单 (Bill)</b>",
+    "step_al_2": "Tap <b>···</b> top-right → <b>开具交易流水证明</b>",
+    "step_al_3": "Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates",
+    "step_al_4": "Wait for the message → download the file",
+    "step_al_5": "Upload the <b>.csv</b> / <b>.xlsx</b> below",
+    "lbl_upload": "Upload",
+    "btn_parse": "Parse file",
+    "imp_choose_first": "Choose a file first.",
+    "imp_parsing": "Parsing…",
+    "imp_no_detect": "Could not detect WeChat or Alipay format in this file.",
+    "imp_failed": "Import failed: ",
+    "imp_xlsx_missing": "xlsx library not loaded — check internet connection.",
+    "rev_title": "Review import",
+    "rev_summary": "{plat} · {n} rows · {d} duplicates skipped · {a} auto-categorized · {e} need your eye",
+    "btn_confirm_import": "Confirm import",
+    "import_done": "Imported {n}",
+    "import_done_review": " · {e} need review",
+    "auth_intro": "Sign in to keep your expenses synced across your devices.",
+    "lbl_email": "Email",
+    "lbl_password": "Password",
+    "auth_signin": "Sign in",
+    "auth_signup": "Create account",
+    "auth_note": "Your data stays private — only you can see it.",
+    "auth_err_empty": "Enter your email and password.",
+    "auth_err_badcreds_signin": "No account matches that email and password. New here? Tap “Create account” below.",
+    "auth_err_badcreds_signup": "Couldn't create the account — please check the email and try again.",
+    "auth_err_exists": "This email already has an account — tap “Sign in” instead.",
+    "auth_err_pw": "Password must be at least 6 characters.",
+    "auth_err_confirm": "Please confirm your email first (check your inbox).",
+    "set_title": "Settings",
+    "set_ccy": "Display currency",
+    "set_rate": "CNY → HKD rate",
+    "set_rate_hint": "Used to convert between CNY and HKD in totals.",
+    "set_backup": "Backup",
+    "btn_export_json": "Export backup (JSON)",
+    "lbl_restore": "Restore backup",
+    "set_backend": "Backend",
+    "btn_sync_now": "Sync now",
+    "btn_signout": "Sign out",
+    "set_danger": "Danger zone",
+    "btn_wipe": "Delete all data",
+    "btn_done": "Done",
+    "sync_local": "Local only",
+    "sync_ing": "Syncing…",
+    "sync_err": "Sync error",
+    "sync_ok": "Connected",
+    "sync_lib": "Library missing",
+    "sync_out": "Signed out",
+    "sync_det_local": "Backend not configured — data stays in this browser. Add your Supabase keys in config.js to sync across devices.",
+    "sync_det_lib": "The Supabase library failed to load — check your connection and reload.",
+    "sync_det_out": "Sign in to sync your data across devices.",
+    "sync_det_ing": "Connected as {email}.",
+    "sync_det_err": "Connected as {email} — {err}.",
+    "sync_det_ok": "Connected as {email} — changes sync automatically.",
+    "signed_in": "Signed in — syncing…",
+    "signed_out": "Signed out",
+    "signin_first": "Sign in first",
+    "backend_not_configured": "Backend not configured",
+    "plat_wechat": "WeChat Pay",
+    "plat_alipay": "Alipay",
+    "plat_cash": "Cash",
+    "plat_bank": "Bank Card",
+    "plat_other": "Other",
+  },
+  zh: {
+    "title": "支出記賬",
+    "brand": "支出記賬",
+    "tab_dashboard": "總覽",
+    "tab_expenses": "支出",
+    "tab_budgets": "預算",
+    "tab_import": "匯入",
+    "lbl_month": "月份",
+    "opt_all_time": "全部時間",
+    "lbl_spent": "已花費",
+    "dash_in_month": "在 {m}",
+    "dash_all_time": "全部時間",
+    "dash_vs_last": "較上月 {p}%",
+    "dash_first_month": "第一個月有數據",
+    "lbl_transactions": "交易",
+    "lbl_topcat": "最多支出類別",
+    "sec_bycat": "按類別",
+    "sec_last30": "過去 30 天",
+    "sec_spendby": "類別支出",
+    "lbl_no_data": "暫無數據。",
+    "lbl_no_data_hint": "暫無數據——匯入賬單或新增支出。",
+    "review_banner_p": "{n} 筆交易需要分類——教一次，app 就記住了。",
+    "review_banner_s": "{n} 筆交易需要分類——教一次，app 就記住了。",
+    "btn_review_now": "立即覆核",
+    "chip_all": "全部",
+    "chip_review": "需覆核",
+    "ph_search": "搜尋商戶…",
+    "opt_all_platforms": "全部平台",
+    "opt_all_categories": "全部類別",
+    "btn_filter": "篩選",
+    "btn_add_expense": "新增支出",
+    "th_date": "日期",
+    "th_merchant": "商戶",
+    "th_category": "類別",
+    "th_platform": "平台",
+    "th_amount": "金額",
+    "exp_empty": "暫無支出。",
+    "review_empty": "已全部處理——所有交易都有類別。",
+    "bulk_selected": "已選擇 {n}",
+    "btn_apply_cat": "套用類別",
+    "confirm_del": "刪除這筆支出？",
+    "bulk_done": "已分類 {n} 筆——我會記住這些商戶",
+    "hint_memory": "建議來自「{m}」——如果不對可以改，我會記住。",
+    "hint_keyword": "建議：{cat}",
+    "lbl_needs_review": "需覆核",
+    "lbl_duplicate": "重複",
+    "dlg_exp_new": "新增支出",
+    "dlg_exp_edit": "編輯支出",
+    "lbl_amount": "金額",
+    "lbl_currency": "貨幣",
+    "lbl_description": "備註",
+    "ph_merchant": "例如 Starbucks",
+    "btn_save": "儲存",
+    "btn_cancel": "取消",
+    "saved": "已儲存",
+    "backup_dl": "備份已下載",
+    "backup_restored": "備份已還原",
+    "restore_failed": "還原失敗：",
+    "backup_invalid": "不是有效的 expense-tracker 備份檔。",
+    "wipe_confirm": "刪除所有支出、預算、記憶和設定{note}？此操作無法復原。",
+    "wipe_cloud_note": "（包括已同步的雲端副本）",
+    "wiped": "所有資料已刪除",
+    "cloud_del_failed": "雲端刪除失敗：",
+    "tt_edit": "編輯",
+    "tt_delete": "刪除",
+    "tt_add_expense": "新增支出",
+    "tt_settings": "設定",
+    "tt_account": "帳戶 —— 開啟設定",
+    "acct_title": "已登入 {email} —— 開啟設定",
+    "bud_hint": "為每個類別設定每月預算，支出會自動追蹤。",
+    "bud_spent": "已花費",
+    "bud_of": "／",
+    "bud_budget": "預算",
+    "bud_over": "超出預算 {a}",
+    "ph_set_budget": "設定預算",
+    "imp_title": "匯入賬單",
+    "imp_intro": "從手機 App 匯出賬單，然後上載到這裡。全部在你的瀏覽器內解析——不會上載到任何地方。",
+    "wechat_sub": "—— 內地人民幣錢包",
+    "alipay_sub": "—— 內地",
+    "step_wc_1": "微信 → <b>我</b> → <b>服务</b> → <b>钱包</b>",
+    "step_wc_2": "按右上角 <b>账单</b>",
+    "step_wc_3": "按右上角 <b>···</b> → <b>下载账单</b>",
+    "step_wc_4": "選擇 <b>用于个人对账</b>（不要選「用作证明材料」），選擇日期",
+    "step_wc_5": "刷臉驗證後，賬單會發送到 <b>微信支付</b> 聊天 → 點 <b>查看详情</b> → 下載",
+    "step_wc_6": "如果是 zip，先解壓 → 在下方上載 <b>.csv</b> / <b>.xlsx</b>",
+    "wechat_hk_note": "在 <b>WeChat Pay HK</b>，如果看不到「下载账单」，代表你的錢包不支援匯出——請用 + 按鈕手動記賬。",
+    "step_al_1": "支付寶 → <b>我的</b> → <b>账单</b>",
+    "step_al_2": "按右上角 <b>···</b> → <b>开具交易流水证明</b>",
+    "step_al_3": "選擇 <b>用于个人对账</b>，選擇日期",
+    "step_al_4": "等候訊息 → 下載檔案",
+    "step_al_5": "在下方上載 <b>.csv</b> / <b>.xlsx</b>",
+    "lbl_upload": "上載",
+    "btn_parse": "解析檔案",
+    "imp_choose_first": "請先選擇檔案。",
+    "imp_parsing": "解析中…",
+    "imp_no_detect": "未能在此檔案中識別微信支付或支付寶格式。",
+    "imp_failed": "匯入失敗：",
+    "imp_xlsx_missing": "xlsx 函式庫未載入——請檢查網絡連接。",
+    "rev_title": "覆核匯入",
+    "rev_summary": "{plat} · {n} 筆 · 略過 {d} 筆重複 · 已自動分類 {a} 筆 · {e} 筆需手動確認",
+    "btn_confirm_import": "確認匯入",
+    "import_done": "已匯入 {n}",
+    "import_done_review": " · {e} 筆需覆核",
+    "auth_intro": "登入以在你的裝置之間同步支出。",
+    "lbl_email": "電郵",
+    "lbl_password": "密碼",
+    "auth_signin": "登入",
+    "auth_signup": "建立帳戶",
+    "auth_note": "你的資料保持私密——只有你能看到。",
+    "auth_err_empty": "請輸入電郵和密碼。",
+    "auth_err_badcreds_signin": "電郵或密碼不正確。新用戶？請按「建立帳戶」。",
+    "auth_err_badcreds_signup": "無法建立帳戶——請檢查電郵後再試。",
+    "auth_err_exists": "此電郵已有帳戶——請直接「登入」。",
+    "auth_err_pw": "密碼至少需要 6 個字元。",
+    "auth_err_confirm": "請先確認電郵（檢查收件箱）。",
+    "set_title": "設定",
+    "set_ccy": "顯示貨幣",
+    "set_rate": "CNY → HKD 匯率",
+    "set_rate_hint": "用於在合計中轉換 CNY 和 HKD。",
+    "set_backup": "備份",
+    "btn_export_json": "匯出備份 (JSON)",
+    "lbl_restore": "還原備份",
+    "set_backend": "後端",
+    "btn_sync_now": "立即同步",
+    "btn_signout": "登出",
+    "set_danger": "危險區",
+    "btn_wipe": "刪除所有資料",
+    "btn_done": "完成",
+    "sync_local": "僅本地",
+    "sync_ing": "同步中…",
+    "sync_err": "同步錯誤",
+    "sync_ok": "已連接",
+    "sync_lib": "函式庫缺失",
+    "sync_out": "已登出",
+    "sync_det_local": "後端未設定——資料只保存在此瀏覽器。在 config.js 加入 Supabase 金鑰以在裝置間同步。",
+    "sync_det_lib": "Supabase 函式庫載入失敗——請檢查網絡並重新載入。",
+    "sync_det_out": "登入以在裝置間同步資料。",
+    "sync_det_ing": "已連接：{email}。",
+    "sync_det_err": "已連接：{email}——{err}。",
+    "sync_det_ok": "已連接：{email}——更改會自動同步。",
+    "signed_in": "已登入——同步中…",
+    "signed_out": "已登出",
+    "signin_first": "請先登入",
+    "backend_not_configured": "後端未設定",
+    "plat_wechat": "微信支付",
+    "plat_alipay": "支付寶",
+    "plat_cash": "現金",
+    "plat_bank": "銀行卡",
+    "plat_other": "其他",
+  },
+};
+
+let LANG = "en";
+try {
+  LANG = localStorage.getItem("exp_lang") === "zh" ? "zh" : "en";
+} catch { /* storage unavailable: keep default */ }
+
+function t(key) {
+  return (I18N[LANG] && I18N[LANG][key]) || I18N.en[key] || key;
+}
+
+/* Display label for a canonical platform code (wechat/alipay/...). */
+function tPlat(code) {
+  const k = "plat_" + code;
+  return (I18N[LANG] && I18N[LANG][k]) || I18N.en[k] || code;
+}
+
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  document.querySelectorAll("[data-i18n-html]").forEach((el) => {
+    el.innerHTML = t(el.dataset.i18nHtml);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    el.setAttribute("title", t(el.dataset.i18nTitle));
+  });
+  document.querySelectorAll("[data-lang-btn]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.langBtn === LANG));
+  document.documentElement.lang = LANG === "zh" ? "zh-Hant" : "en";
+  document.title = t("title");
+}
+
+function setLang(next) {
+  if (next !== "zh" && next !== "en") return;
+  LANG = next;
+  try { localStorage.setItem("exp_lang", LANG); } catch { /* ignore */ }
+  applyI18n();
+  if (typeof renderAll === "function") renderAll();
+  if (typeof window.onLangChange === "function") window.onLangChange();
+}
+
+document.querySelectorAll("[data-lang-btn]").forEach((b) =>
+  b.addEventListener("click", () => setLang(b.dataset.langBtn)));
+
+// Initial pass: title, html lang and active button for returning users.
+applyI18n();
+
+</script>
 <script>
 /* Expense Tracker — static data layer.
    browser-backed, no backend. Mirrors the Flask models.py API. */
@@ -1042,7 +1418,9 @@ const DB = {
 
   importAll(data) {
     if (!data || data.app !== "expense-tracker" || !Array.isArray(data.expenses)) {
-      throw new Error("Not a valid expense-tracker backup file.");
+      const err = new Error("Not a valid expense-tracker backup file.");
+      err.code = "invalid_backup";
+      throw err;
     }
     this._write("exp_expenses", data.expenses);
     this._write("exp_merchant_memory", data.merchant_memory || {});
@@ -1393,7 +1771,9 @@ const Importers = {
     if (name.endsWith(".xlsx")) {
       // SheetJS from CDN
       if (typeof XLSX === "undefined") {
-        throw new Error("xlsx library not loaded — check internet connection.");
+        const err = new Error("xlsx library not loaded — check internet connection.");
+        err.code = "xlsx_missing";
+        throw err;
       }
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, { type: "array" });
@@ -1902,7 +2282,7 @@ function renderDashboard() {
   document.getElementById("dash-total").textContent = sym + fmt(total.total);
   document.getElementById("dash-count").textContent = total.count;
   document.getElementById("dash-month-label").textContent =
-    month ? `in ${month}` : "all time";
+    month ? t("dash_in_month").replace("{m}", month) : t("dash_all_time");
 
   // Delta vs previous month (only when a month is selected)
   const deltaEl = document.getElementById("dash-delta");
@@ -1914,10 +2294,10 @@ function renderDashboard() {
       const pct = ((total.total - prev) / prev) * 100;
       const up = pct > 0.5, down = pct < -0.5;
       deltaEl.textContent =
-        (up ? "▲ +" : down ? "▼ " : "– ") + Math.abs(pct).toFixed(0) + "% vs last month";
+        (up ? "▲ +" : down ? "▼ " : "– ") + t("dash_vs_last").replace("{p}", Math.abs(pct).toFixed(0));
       deltaEl.className = "delta " + (up ? "up" : down ? "down" : "");
     } else {
-      deltaEl.textContent = "first month with data";
+      deltaEl.textContent = t("dash_first_month");
       deltaEl.className = "delta";
     }
   } else {
@@ -1943,7 +2323,7 @@ function renderDashboard() {
     const pct = total.total ? ((r.total / total.total) * 100).toFixed(0) : 0;
     return `<div class="legend-row"><span class="dot" style="background:${m.color}"></span>` +
       `${m.icon} ${esc(r.category)} <span class="muted">${pct}%</span></div>`;
-  }).join("") || `<div class="muted">No data yet.</div>`;
+  }).join("") || `<div class="muted">${t("lbl_no_data")}</div>`;
 
   // Last-30-days bars
   const days = [];
@@ -1978,7 +2358,7 @@ function renderDashboard() {
       <span class="amount"><strong>${sym}${fmt(r.total)}</strong></span>
       <span class="muted">${r.n}</span>
     </div>`;
-  }).join("") || `<div class="muted">No data yet — import a bill or add an expense.</div>`;
+  }).join("") || `<div class="muted">${t("lbl_no_data_hint")}</div>`;
 
   document.querySelectorAll(".cat-row").forEach((row) => {
     row.addEventListener("click", () => {
@@ -1996,7 +2376,7 @@ function renderDashboard() {
   banner.style.display = n ? "flex" : "none";
   if (n) {
     document.getElementById("review-banner-text").textContent =
-      `${n} transaction${n > 1 ? "s" : ""} need${n > 1 ? "" : "s"} a category — teach the app once, it remembers.`;
+      (n > 1 ? t("review_banner_p") : t("review_banner_s")).replace("{n}", String(n));
   }
 }
 document.getElementById("review-banner-go").addEventListener("click", () => {
@@ -2010,7 +2390,7 @@ function refreshMonthOptions() {
     const sel = document.getElementById(id);
     if (!sel) continue;
     const cur = sel.value || curMonth();
-    sel.innerHTML = (id === "dash-month" ? `<option value="">All time</option>` : "") +
+    sel.innerHTML = (id === "dash-month" ? `<option value="">${t("opt_all_time")}</option>` : "") +
       DB.months().map((m) => `<option value="${m}">${m}</option>`).join("");
     sel.value = [...sel.options].some((o) => o.value === cur) ? cur : (sel.options[0] ? sel.options[0].value : "");
   }
@@ -2078,21 +2458,19 @@ function renderExpenses() {
         <td><strong>${esc(e.merchant || "—")}</strong>
           ${e.description ? `<div class="muted">${esc(e.description)}</div>` : ""}</td>
         <td>${catPill(e.category)}</td>
-        <td>${esc(PLATFORM_LABELS[e.platform] || e.platform)}</td>
+        <td>${esc(tPlat(e.platform) || e.platform)}</td>
         <td class="amount">${sym}${fmt(shown)}${orig}</td>
         <td class="row-actions">
-          <button data-edit="${e.id}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.2L16.6 4.2a2.1 2.1 0 0 1 3 3L8 18.8 4 20z"/><path d="M14.8 6l3.2 3.2"/></svg></button>
-          <button data-del="${e.id}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
+          <button data-edit="${e.id}" title="${t("tt_edit")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.2L16.6 4.2a2.1 2.1 0 0 1 3 3L8 18.8 4 20z"/><path d="M14.8 6l3.2 3.2"/></svg></button>
+          <button data-del="${e.id}" title="${t("tt_delete")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
         </td>
       </tr>`;
     }).join("")
-    : `<tr><td colspan="7" class="muted">${chip === "review"
-      ? "Inbox zero — everything has a category."
-      : "No expenses yet."}</td></tr>`;
+    : `<tr><td colspan="7" class="muted">${chip === "review" ? t("review_empty") : t("exp_empty")}</td></tr>`;
 
   document.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (confirm("Delete this expense?")) {
+      if (confirm(t("confirm_del"))) {
         DB.remove(btn.dataset.del);
         renderAll();
       }
@@ -2119,14 +2497,14 @@ function renderExpenses() {
 function updateBulkCount() {
   const n = document.querySelectorAll("[data-bulk]:checked").length;
   document.getElementById("bulk-count").textContent =
-    `${n} selected`;
+    t("bulk_selected").replace("{n}", String(n));
 }
 document.getElementById("bulk-apply").addEventListener("click", () => {
   const ids = [...document.querySelectorAll("[data-bulk]:checked")].map((cb) => cb.dataset.bulk);
   const cat = document.getElementById("bulk-cat").value;
   if (!ids.length || !cat) return;
   const done = DB.bulkSetCategory(ids, cat);
-  toast(`${done} categorized — I'll remember these merchants`);
+  toast(t("bulk_done").replace("{n}", String(done)));
   renderAll();
 });
 
@@ -2153,7 +2531,7 @@ function openExpenseDialog(id) {
   const form = document.getElementById("frm-expense");
   form.reset();
   document.getElementById("dlg-expense-title").textContent =
-    editingId ? "Edit expense" : "New expense";
+    editingId ? t("dlg_exp_edit") : t("dlg_exp_new");
   document.getElementById("f-cat").innerHTML = catOptions("Other");
   document.getElementById("f-currency").value = DB.getSettings().display_currency;
   document.getElementById("f-date").value = new Date().toISOString().slice(0, 10);
@@ -2186,8 +2564,8 @@ document.getElementById("f-merchant").addEventListener("blur", () => {
   if (p.category) {
     document.getElementById("f-cat").value = p.category;
     hint.textContent = p.via === "memory"
-      ? `Suggested from “${m}” — change it if I'm wrong, I'll remember.`
-      : `Suggested: ${catLabel(p.category)}`;
+      ? t("hint_memory").replace("{m}", m)
+      : t("hint_keyword").replace("{cat}", catLabel(p.category));
     hint.style.display = "block";
   } else {
     hint.style.display = "none";
@@ -2211,7 +2589,7 @@ document.getElementById("frm-expense").addEventListener("submit", (e) => {
   editingId = null;
   dlg.close();
   renderAll();
-  toast("Saved");
+  toast(t("saved"));
 });
 
 /* ---- Import: parse -> review -> commit ----------------------------------------- */
@@ -2220,12 +2598,12 @@ let reviewBatch = null;
 document.getElementById("btn-import").addEventListener("click", async () => {
   const file = document.getElementById("f-file").files[0];
   const out = document.getElementById("import-result");
-  if (!file) { out.textContent = "Choose a file first."; return; }
-  out.textContent = "Parsing…";
+  if (!file) { out.textContent = t("imp_choose_first"); return; }
+  out.textContent = t("imp_parsing");
   try {
     const { platform, expenses } = await Importers.parseFile(file);
     if (!platform) {
-      out.textContent = "Could not detect WeChat or Alipay format in this file.";
+      out.textContent = t("imp_no_detect");
       return;
     }
     const existing = new Set(
@@ -2247,7 +2625,7 @@ document.getElementById("btn-import").addEventListener("click", async () => {
     document.getElementById("review-card").style.display = "block";
     document.getElementById("review-card").scrollIntoView({ behavior: "smooth" });
   } catch (err) {
-    out.textContent = "Import failed: " + err.message;
+    out.textContent = t("imp_failed") + (err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") : err.message);
   }
 });
 
@@ -2259,8 +2637,11 @@ function renderReview() {
   const needEye = rows.filter((r) => !r.dupe && !r.proposed).length;
   const platLabel = reviewBatch.platform === "wechat" ? "WeChat Pay" : "Alipay";
   document.getElementById("review-summary").textContent =
-    `${platLabel} · ${rows.length} rows · ${dupes} duplicate${dupes === 1 ? "" : "s"} skipped · ` +
-    `${auto} auto-categorized · ${needEye} need${needEye === 1 ? "s" : ""} your eye`;
+    t("rev_summary").replace("{plat}", platLabel)
+      .replace("{n}", String(rows.length))
+      .replace("{d}", String(dupes))
+      .replace("{a}", String(auto))
+      .replace("{e}", String(needEye));
 
   document.getElementById("review-rows").innerHTML = rows.map((r, i) => `
     <tr class="${r.dupe ? "dupe" : ""}${!r.dupe && !r.proposed ? "needs-review" : ""}">
@@ -2274,8 +2655,8 @@ function renderReview() {
           `<option value="${esc(c)}"${(r.proposed || "Other") === c ? " selected" : ""}>${catLabel(c)}</option>`
         ).join("")}
       </select>
-      ${!r.dupe && !r.proposed ? `<div class="muted">needs review</div>` : ""}</td>
-      <td>${r.dupe ? `<span class="muted">duplicate</span>` : ""}</td>
+      ${!r.dupe && !r.proposed ? `<div class="muted">${t("lbl_needs_review")}</div>` : ""}</td>
+      <td>${r.dupe ? `<span class="muted">${t("lbl_duplicate")}</span>` : ""}</td>
     </tr>`).join("");
 
   document.getElementById("review-all").checked =
@@ -2328,7 +2709,8 @@ document.getElementById("btn-review-confirm").addEventListener("click", () => {
   document.getElementById("review-card").style.display = "none";
   document.getElementById("f-file").value = "";
   renderAll();
-  toast(`Imported ${added}${eye ? ` · ${eye} need review` : ""}`);
+  toast(t("import_done").replace("{n}", String(added)) +
+    (eye ? t("import_done_review").replace("{e}", String(eye)) : ""));
 });
 
 /* ---- Budgets -------------------------------------------------------------------- */
@@ -2356,18 +2738,18 @@ function renderBudgets() {
           <span class="amount">${sym}${fmt(s)}${b > 0 ? ` <span class="muted">/ ${sym}${fmt(b)}</span>` : ""}</span>
         </div>
         <div class="progress"><i style="width:${pct.toFixed(0)}%;background:${over ? "#dc2626" : m.color}"></i></div>
-        ${over ? `<div class="over-warn">Over budget by ${sym}${fmt(s - b)}</div>` : ""}
+        ${over ? `<div class="over-warn">${t("bud_over").replace("{a}", sym + fmt(s - b))}</div>` : ""}
       </div>
       <input type="number" min="0" step="1" class="budget-input" data-budget="${esc(c)}"
-        placeholder="Set budget" value="${b > 0 ? b : ""}">
+        placeholder="${t("ph_set_budget")}" value="${b > 0 ? b : ""}">
     </div>`;
   }).join("");
 
   document.getElementById("budget-rows").innerHTML =
     `<div class="card budget-summary">
-       <span>Spent <strong>${sym}${fmt(totSpent)}</strong></span>
-       <span class="muted">of</span>
-       <span>Budget <strong>${sym}${fmt(totBudget)}</strong></span>
+       <span>${t("bud_spent")} <strong>${sym}${fmt(totSpent)}</strong></span>
+       <span class="muted">${t("bud_of")}</span>
+       <span>${t("bud_budget")} <strong>${sym}${fmt(totBudget)}</strong></span>
      </div>` + rows;
 
   document.querySelectorAll("[data-budget]").forEach((inp) => {
@@ -2412,7 +2794,7 @@ document.getElementById("btn-export-json").addEventListener("click", () => {
   a.download = `expense-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast("Backup downloaded");
+  toast(t("backup_dl"));
 });
 document.getElementById("f-restore").addEventListener("change", (e) => {
   const f = e.target.files[0];
@@ -2422,20 +2804,19 @@ document.getElementById("f-restore").addEventListener("change", (e) => {
     try {
       DB.importAll(JSON.parse(rd.result));
       renderAll();
-      toast("Backup restored");
+      toast(t("backup_restored"));
     } catch (err) {
-      alert("Restore failed: " + err.message);
+      alert(t("restore_failed") + (err && err.code === "invalid_backup" ? t("backup_invalid") : err.message));
     }
   };
   rd.readAsText(f);
   e.target.value = "";
 });
 document.getElementById("btn-wipe").addEventListener("click", async () => {
-  const cloudNote = Cloud.signedIn() ? " (including the synced cloud copy)" : "";
-  if (!confirm("Delete ALL expenses, budgets, memory and settings" + cloudNote +
-               "? This cannot be undone.")) return;
+  const cloudNote = Cloud.signedIn() ? t("wipe_cloud_note") : "";
+  if (!confirm(t("wipe_confirm").replace("{note}", cloudNote))) return;
   if (Cloud.signedIn()) {
-    try { await Sync.wipeCloud(); } catch (e) { toast("Cloud delete failed: " + e.message); return; }
+    try { await Sync.wipeCloud(); } catch (e) { toast(t("cloud_del_failed") + e.message); return; }
   }
   for (const k of ["exp_expenses", "exp_merchant_memory", "exp_user_rules",
                    "exp_budgets", "exp_settings", "exp_seq", "exp_migrated_v2",
@@ -2443,18 +2824,18 @@ document.getElementById("btn-wipe").addEventListener("click", async () => {
     storage.removeItem(k);
   }
   renderAll();
-  toast("All data deleted");
+  toast(t("wiped"));
 });
 
 /* ---- Selects ----------------------------------------------------------------------- */
 function fillSelects() {
   document.getElementById("f-plat").innerHTML =
-    PLATFORMS.map(([p, l]) => `<option value="${p}">${esc(l)}</option>`).join("");
+    PLATFORMS.map(([p]) => `<option value="${p}">${esc(tPlat(p))}</option>`).join("");
   document.getElementById("f-platform").innerHTML =
-    `<option value="">All platforms</option>` +
-    PLATFORMS.map(([p, l]) => `<option value="${p}">${esc(l)}</option>`).join("");
+    `<option value="">${t("opt_all_platforms")}</option>` +
+    PLATFORMS.map(([p]) => `<option value="${p}">${esc(tPlat(p))}</option>`).join("");
   document.getElementById("f-category").innerHTML =
-    `<option value="">All categories</option>` +
+    `<option value="">${t("opt_all_categories")}</option>` +
     CATEGORY_IDS.map((c) => `<option value="${esc(c)}">${catLabel(c)}</option>`).join("");
   document.getElementById("bulk-cat").innerHTML =
     CATEGORY_IDS.filter((c) => c !== "Other").map((c) =>
@@ -2486,11 +2867,11 @@ function showAuthView() {
 function onCloudAuthChange(user, wasIn) {
   if (user && !wasIn) {
     showApp();
-    toast("Signed in — syncing…");
+    toast(t("signed_in"));
     Sync.syncNow();
   } else if (!user && wasIn) {
     showAuthView();
-    toast("Signed out");
+    toast(t("signed_out"));
   }
   renderSyncStatus();
 }
@@ -2500,29 +2881,28 @@ function renderSyncStatus() {
   const detail = document.getElementById("backend-detail");
   const signout = document.getElementById("btn-signout");
   if (!pill) return;
-  let label = "Local only", cls = "";
-  let det = "Backend not configured — data stays in this browser. " +
-            "Add your Supabase keys in config.js to sync across devices.";
+  let label = t("sync_local"), cls = "";
+  let det = t("sync_det_local");
   let showSignout = false;
   if (Cloud.configured()) {
     if (!Cloud.ready()) {
-      label = "Library missing";
-      det = "The Supabase library failed to load — check your connection and reload.";
+      label = t("sync_lib");
+      det = t("sync_det_lib");
     } else if (!Cloud.signedIn()) {
-      label = "Signed out";
-      det = "Sign in to sync your data across devices.";
+      label = t("sync_out");
+      det = t("sync_det_out");
     } else {
       showSignout = true;
       const email = (Cloud.user() && Cloud.user().email) || "";
       if (Sync.status === "syncing") {
-        label = "Syncing…";
-        det = "Connected as " + email + ".";
+        label = t("sync_ing");
+        det = t("sync_det_ing").replace("{email}", email);
       } else if (Sync.status === "error") {
-        label = "Sync error"; cls = "err";
-        det = "Connected as " + email + " — " + (Sync.lastError || "unknown error") + ".";
+        label = t("sync_err"); cls = "err";
+        det = t("sync_det_err").replace("{email}", email).replace("{err}", Sync.lastError || "unknown error");
       } else {
-        label = "Connected"; cls = "ok";
-        det = "Connected as " + email + " — changes sync automatically.";
+        label = t("sync_ok"); cls = "ok";
+        det = t("sync_det_ok").replace("{email}", email);
       }
     }
   }
@@ -2536,7 +2916,7 @@ function renderSyncStatus() {
       const email = (Cloud.user() && Cloud.user().email) || "?";
       chip.hidden = false;
       chip.textContent = email.trim().charAt(0).toUpperCase() || "?";
-      chip.title = "Signed in as " + email + " — open settings";
+      chip.title = t("acct_title").replace("{email}", email);
     } else {
       chip.hidden = true;
     }
@@ -2546,14 +2926,12 @@ function renderSyncStatus() {
 function friendlyAuthError(e, mode) {
   const m = (e && e.message) || "Something went wrong";
   if (/invalid login credentials/i.test(m))
-    return mode === "signup"
-      ? "Couldn't create the account — please check the email and try again."
-      : "No account matches that email and password. New here? Tap “Create account” below.";
+    return mode === "signup" ? t("auth_err_badcreds_signup") : t("auth_err_badcreds_signin");
   if (/already registered|already exists|duplicate/i.test(m))
-    return "This email already has an account — tap “Sign in” instead.";
-  if (/password.*(6|short|length)/i.test(m)) return "Password must be at least 6 characters.";
+    return t("auth_err_exists");
+  if (/password.*(6|short|length)/i.test(m)) return t("auth_err_pw");
   if (/email/i.test(m) && /confirm/i.test(m))
-    return "Please confirm your email first (check your inbox).";
+    return t("auth_err_confirm");
   return m;
 }
 
@@ -2564,7 +2942,7 @@ async function handleAuth(mode) {
   err.style.display = "none";
   err.textContent = "";
   if (!email || !pw) {
-    err.textContent = "Enter your email and password.";
+    err.textContent = t("auth_err_empty");
     err.style.display = "block";
     return;
   }
@@ -2585,11 +2963,11 @@ document.getElementById("btn-signout").addEventListener("click", async () => {
 });
 document.getElementById("btn-sync-now").addEventListener("click", () => {
   if (!Cloud.signedIn()) {
-    toast(Cloud.configured() ? "Sign in first" : "Backend not configured");
+    toast(Cloud.configured() ? t("signin_first") : t("backend_not_configured"));
     return;
   }
   Sync.syncNow();
-  toast("Syncing…");
+  toast(t("sync_ing"));
 });
 
 function registerServiceWorker() {
@@ -2597,6 +2975,12 @@ function registerServiceWorker() {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 }
+
+/* Re-render language-sensitive dynamic UI on a language change. */
+window.onLangChange = function () {
+  renderSyncStatus();
+  if (reviewBatch) renderReview();
+};
 
 async function boot() {
   fillSelects();
