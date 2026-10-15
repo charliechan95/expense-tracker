@@ -122,6 +122,15 @@ const Importers = {
     return { platform: null, expenses: [] };
   },
 
+  /* Paste-text path: same row parsing as parseFile, without the file or
+     xlsx branches. Returns the same {platform, expenses} shape. */
+  parseText(text) {
+    if (text == null) return { platform: null, expenses: [] };
+    let t = String(text);
+    if (t.charCodeAt(0) === 0xFEFF) t = t.slice(1);
+    return this.detectAndParseRows(this._parseCSV(t));
+  },
+
   async parseFile(file) {
     const name = file.name.toLowerCase();
     if (name.endsWith(".xlsx")) {
