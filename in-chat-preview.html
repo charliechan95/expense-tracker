@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f5f1e8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>Expense Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Expense Tracker — "Modern Ledger" design system.
+   Editorial, print-inspired. Fraunces for display numerals/headings,
+   Inter for UI. Hairlines over shadows. No gradients. */
+
+:root {
+  --paper: #f5f1e8;
+  --surface: #ffffff;
+  --surface-warm: #faf8f2;
+  --ink: #1c1917;
+  --ink-soft: #44403c;
+  --muted: #8a8478;
+  --line: #e6dfcd;
+  --line-soft: #efe9d9;
+  --accent: #1c6b41;
+  --accent-deep: #14532f;
+  --accent-wash: #e3efe6;
+  --danger: #b3261e;
+  --warn-bg: #fbf3dc;
+  --warn-line: #e3c878;
+  --radius: 14px;
+  --font-display: "Fraunces", "Noto Serif TC", Georgia, serif;
+  --font-ui: "Inter", "Noto Sans TC", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Top bar ---------------------------------------------------------- */
+.topbar {
+  position: sticky; top: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1.4rem;
+  background: color-mix(in srgb, var(--paper) 88%, white);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: flex; align-items: center; gap: 0.6rem;
+  font-family: var(--font-display); font-weight: 600; font-size: 1.12rem;
+  letter-spacing: -0.01em; white-space: nowrap;
+}
+.brand svg { width: 26px; height: 26px; color: var(--accent-deep); flex-shrink: 0; }
+
+.tabs { display: flex; align-items: center; gap: 0.15rem; }
+.tabs button {
+  display: inline-flex; align-items: center; gap: 0.45rem;
+  border: none; background: transparent; color: var(--muted);
+  font: inherit; font-size: 0.92rem; font-weight: 500;
+  padding: 0.55rem 0.75rem; cursor: pointer;
+  border-bottom: 2px solid transparent; border-radius: 0;
+  margin-bottom: -1px;
+}
+.tabs button svg { width: 17px; height: 17px; }
+.tabs button:hover { color: var(--ink); }
+.tabs button.active { color: var(--ink); border-bottom-color: var(--accent); }
+#btn-settings { color: var(--muted); padding: 0.55rem 0.6rem; }
+#btn-settings:hover { color: var(--ink); }
+#btn-settings svg { width: 19px; height: 19px; }
+.acct-chip {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: var(--ink); color: var(--paper);
+  font: 600 0.85rem var(--font-ui); border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0; margin: 0 0.15rem; align-self: center;
+}
+.acct-chip[hidden] { display: none; }
+
+/* ---- Layout ----------------------------------------------------------- */
+.container { max-width: 1080px; margin: 0 auto; padding: 1.6rem 1.4rem 5rem; }
+.view { display: none; }
+.view.active { display: block; }
+
+.toolbar {
+  display: flex; gap: 0.9rem; align-items: center;
+  margin-bottom: 1.3rem; flex-wrap: wrap;
+}
+.toolbar h1 { margin: 0; margin-right: auto; }
+h1 {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 1.75rem; letter-spacing: -0.02em; margin: 0.2rem 0 1.2rem;
+}
+h2 {
+  font-family: var(--font-display); font-weight: 600; font-size: 1.12rem;
+  letter-spacing: -0.01em; margin: 0 0 0.9rem;
+}
+.kicker {
+  text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.7rem;
+  font-weight: 600; color: var(--muted); margin-bottom: 0.35rem;
+}
+.muted { color: var(--muted); font-size: 0.9em; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.4rem 1.5rem;
+  margin-bottom: 1.1rem;
+}
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+@media (max-width: 720px) { .two-col { grid-template-columns: 1fr; } }
+
+/* ---- Hero figures ----------------------------------------------------- */
+.hero-cards {
+  display: flex; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  margin-bottom: 1.1rem; overflow: hidden;
+}
+.card.hero {
+  flex: 1; min-width: 0; background: transparent; border: none;
+  border-radius: 0; padding: 1.3rem 1.5rem; margin: 0;
+}
+.card.hero + .card.hero { border-left: 1px solid var(--line-soft); }
+.card-num {
+  font-family: var(--font-display); font-weight: 600;
+  font-size: 2.5rem; letter-spacing: -0.03em; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.card-num.cat-line { font-size: 1.6rem; padding-top: 0.35rem; }
+.card-label {
+  margin-top: 0.35rem; color: var(--muted); font-size: 0.78rem;
+  text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600;
+}
+.delta { font-size: 0.85rem; margin-top: 0.4rem; color: var(--muted); font-weight: 500; }
+.delta.up { color: var(--danger); }
+.delta.down { color: var(--accent); }
+
+/* ---- Dashboard widgets ------------------------------------------------ */
+.donut-wrap { position: relative; width: 168px; margin: 0.4rem auto 0.6rem; }
+.donut-center {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; pointer-events: none;
+}
+.donut-total {
+  font-family: var(--font-display); font-weight: 600; font-size: 1.35rem;
+  letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.legend-row {
+  display: flex; align-items: center; gap: 0.55rem;
+  padding: 0.32rem 0; font-size: 0.9rem;
+}
+.legend-row .amount { margin-left: auto; font-weight: 600; font-variant-numeric: tabular-nums; }
+.dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding-top: 0.5rem; }
+.bar {
+  flex: 1; background: var(--ink); opacity: 0.78;
+  border-radius: 3px 3px 0 0; min-width: 2px; transition: opacity 0.15s;
+}
+.bar:hover { opacity: 1; }
+.bar.peak { background: var(--accent); opacity: 1; }
+
+.cat-row {
+  display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.7rem 0.2rem; border-bottom: 1px solid var(--line-soft);
+  cursor: pointer;
+}
+.cat-row:hover { background: var(--surface-warm); }
+.cat-row:last-child { border-bottom: none; }
+.cat-ico {
+  width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: color-mix(in srgb, var(--cat, var(--muted)) 11%, white);
+  color: var(--cat, var(--muted));
+  border: 1px solid color-mix(in srgb, var(--cat, var(--muted)) 22%, transparent);
+}
+.cat-ico svg { width: 20px; height: 20px; }
+.cat-name { min-width: 170px; font-weight: 500; }
+.cat-bar { flex: 1; height: 7px; background: var(--line-soft); border-radius: 4px; overflow: hidden; }
+.cat-bar i { display: block; height: 100%; border-radius: 4px; }
+
+/* ---- Tables ----------------------------------------------------------- */
+.tbl { width: 100%; border-collapse: collapse; }
+.tbl th {
+  text-align: left; font-size: 0.72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted);
+  padding: 0.55rem 0.7rem; border-bottom: 1px solid var(--line);
+}
+.tbl td {
+  padding: 0.75rem 0.7rem; border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.tbl tbody tr:last-child td { border-bottom: none; }
+.tbl tbody tr:hover td { background: var(--surface-warm); }
+.amount { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
+.row-actions { white-space: nowrap; text-align: right; }
+.row-actions button {
+  padding: 0.4rem; border: none; background: transparent; color: var(--muted);
+  border-radius: 8px; line-height: 0;
+}
+.row-actions button:hover { color: var(--ink); background: var(--line-soft); }
+.row-actions button svg { width: 16px; height: 16px; }
+tr.needs-review td { background: #fffdf4; }
+tr.dupe td { opacity: 0.5; }
+.cat-pill {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.2rem 0.65rem 0.2rem 0.5rem; border-radius: 999px;
+  font-size: 0.83rem; font-weight: 500; white-space: nowrap;
+  color: var(--cat);
+  background: color-mix(in srgb, var(--cat) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--cat) 28%, transparent);
+}
+.cat-pill svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* ---- Controls --------------------------------------------------------- */
+input, select, textarea {
+  font: inherit; color: var(--ink);
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface);
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+button {
+  font: inherit; font-weight: 500;
+  padding: 0.55rem 1.05rem; border-radius: 10px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  cursor: pointer;
+}
+button:hover { border-color: var(--muted); }
+button.primary { background: var(--ink); border-color: var(--ink); color: #fbf9f4; }
+button.primary:hover { background: #2e2a26; border-color: #2e2a26; }
+button.danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, white); }
+button.danger:hover { background: color-mix(in srgb, var(--danger) 7%, white); }
+
+.search { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+.month-pick { display: flex; align-items: center; gap: 0.55rem; font-size: 0.9rem; color: var(--muted); }
+
+.chips { display: flex; gap: 0.5rem; }
+.chip { border-radius: 999px; font-size: 0.88rem; padding: 0.45rem 1rem; }
+.chip.active { background: var(--ink); color: #fbf9f4; border-color: var(--ink); }
+.chip.warn { border-color: var(--warn-line); }
+.chip.warn.active { background: #92610a; border-color: #92610a; color: #fff; }
+
+.bulk-bar {
+  display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap;
+  background: var(--warn-bg); border: 1px solid var(--warn-line);
+  border-radius: var(--radius); padding: 0.7rem 1.1rem; margin-bottom: 0.9rem;
+  font-size: 0.92rem;
+}
+.banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  background: var(--warn-bg); border: 1px solid var(--warn-line);
+  border-radius: var(--radius); padding: 0.85rem 1.2rem; margin-bottom: 1.1rem;
+  font-size: 0.95rem;
+}
+.banner button { flex-shrink: 0; }
+
+/* ---- Budgets ---------------------------------------------------------- */
+.budget-summary {
+  display: flex; gap: 0.7rem; align-items: baseline;
+  margin-bottom: 1rem; font-size: 1.05rem;
+}
+.budget-summary strong { font-family: var(--font-display); font-size: 1.5rem; letter-spacing: -0.02em; }
+.budget-row {
+  display: flex; align-items: center; gap: 1rem;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 1rem 1.2rem; margin-bottom: 0.7rem;
+}
+.budget-main { flex: 1; min-width: 0; }
+.budget-top { display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 0.5rem; gap: 0.8rem; }
+.budget-top .amount { font-family: var(--font-display); font-size: 1.05rem; }
+.progress { height: 8px; background: var(--line-soft); border-radius: 5px; overflow: hidden; }
+.progress i { display: block; height: 100%; border-radius: 5px; transition: width 0.3s; }
+.budget-row.over .budget-top strong { color: var(--danger); }
+.over-warn { color: var(--danger); font-size: 0.85rem; margin-top: 0.3rem; font-weight: 500; }
+.budget-input { width: 120px; flex-shrink: 0; }
+
+/* ---- Import ----------------------------------------------------------- */
+.steps { padding-left: 1.25rem; margin: 0.4rem 0 0; }
+.steps li { margin-bottom: 0.4rem; font-size: 0.93rem; }
+.steps b { font-weight: 600; }
+#import-result { margin-top: 0.6rem; }
+
+/* ---- Dialogs ---------------------------------------------------------- */
+dialog {
+  border: 1px solid var(--line); border-radius: 18px;
+  padding: 1.6rem; width: min(480px, 93vw);
+  background: var(--surface); color: var(--ink);
+  box-shadow: 0 24px 70px rgba(28, 25, 23, 0.18);
+}
+dialog::backdrop { background: rgba(28, 25, 23, 0.4); backdrop-filter: blur(2px); }
+dialog h2 { font-size: 1.35rem; margin-bottom: 1.1rem; }
+dialog label { display: block; margin-bottom: 0.85rem; font-size: 0.9rem; font-weight: 500; }
+dialog input, dialog select { width: 100%; margin-top: 0.35rem; }
+.dlg-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1rem; }
+#dlg-settings h3 {
+  margin: 1.3rem 0 0.6rem; font-size: 0.78rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted);
+}
+.danger-zone { color: var(--danger); }
+.file-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font: inherit; font-weight: 500; padding: 0.55rem 1.05rem;
+  border-radius: 10px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer;
+}
+.file-btn:hover { border-color: var(--muted); }
+
+/* ---- FAB + toast ------------------------------------------------------ */
+#fab {
+  position: fixed; right: 1.3rem; bottom: 1.3rem;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: var(--ink); color: #fbf9f4; border: none; cursor: pointer;
+  box-shadow: 0 10px 28px rgba(28, 25, 23, 0.3);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+}
+#fab:hover { background: #2e2a26; }
+#fab svg { width: 24px; height: 24px; }
+.toast {
+  position: fixed; left: 50%; bottom: 5.5rem;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--ink); color: #fbf9f4;
+  padding: 0.75rem 1.3rem; border-radius: 999px;
+  font-size: 0.9rem; font-weight: 500;
+  opacity: 0; pointer-events: none; transition: all 0.25s;
+  z-index: 100; max-width: 90vw; text-align: center;
+  box-shadow: 0 10px 30px rgba(28, 25, 23, 0.25);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ---- Review hint ------------------------------------------------------ */
+#cat-hint {
+  margin-top: 0.4rem; font-size: 0.85rem; color: var(--accent-deep);
+  background: var(--accent-wash); border-radius: 8px; padding: 0.45rem 0.7rem;
+}
+
+/* ---- Auth ------------------------------------------------------------- */
+body.signed-out .topbar .tabs,
+body.signed-out main.container,
+body.signed-out #fab { display: none; }
+#view-auth {
+  min-height: calc(100vh - 60px);
+  align-items: center; justify-content: center;
+  padding: 2rem 1rem;
+}
+#view-auth.active { display: flex; }
+.auth-card {
+  width: min(400px, 94vw);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 20px; padding: 2.2rem 2rem; text-align: center;
+}
+.auth-brand {
+  width: 56px; height: 56px; margin: 0 auto 1rem;
+  border-radius: 16px; background: var(--accent-wash); color: var(--accent-deep);
+  display: flex; align-items: center; justify-content: center;
+}
+.auth-brand svg { width: 30px; height: 30px; }
+.auth-card h1 { margin-bottom: 0.4rem; }
+.auth-card .muted { margin-bottom: 1.4rem; }
+.auth-card label { display: block; text-align: left; margin-bottom: 0.85rem;
+  font-size: 0.9rem; font-weight: 500; }
+.auth-card input { width: 100%; margin-top: 0.35rem; }
+.auth-actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
+.auth-actions button { flex: 1; }
+.auth-error {
+  background: color-mix(in srgb, var(--danger) 8%, white);
+  border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent);
+  color: var(--danger); border-radius: 10px;
+  padding: 0.6rem 0.9rem; font-size: 0.9rem; margin-bottom: 1rem; text-align: left;
+}
+.auth-note { margin-top: 1.2rem; margin-bottom: 0; font-size: 0.82rem; }
+
+/* ---- Backend status --------------------------------------------------- */
+.backend-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.status-pill {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  font-size: 0.83rem; font-weight: 600;
+  padding: 0.3rem 0.8rem; border-radius: 999px;
+  background: var(--line-soft); color: var(--ink-soft);
+  border: 1px solid var(--line);
+}
+.status-pill::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--muted);
+}
+.status-pill.ok { background: var(--accent-wash); color: var(--accent-deep);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+.status-pill.ok::before { background: var(--accent); }
+.status-pill.err { background: color-mix(in srgb, var(--danger) 8%, white);
+  color: var(--danger); border-color: color-mix(in srgb, var(--danger) 30%, transparent); }
+.status-pill.err::before { background: var(--danger); }
+#backend-detail { margin-top: 0.5rem; }
+
+/* ---- Responsive ------------------------------------------------------- */
+@media (max-width: 720px) {
+  .container { padding: 1.1rem 0.9rem 5rem; }
+  .topbar { padding: 0.55rem 0.9rem; }
+  .brand span { display: none; }
+  .tabs button { padding: 0.5rem 0.55rem; font-size: 0.82rem; }
+  .tabs button svg { width: 16px; height: 16px; }
+  .hero-cards { flex-direction: column; }
+  .card.hero + .card.hero { border-left: none; border-top: 1px solid var(--line-soft); }
+  .card-num { font-size: 2.1rem; }
+  .cat-name { min-width: 0; }
+  .cat-bar { display: none; }
+  .tbl th:nth-child(4), .tbl td:nth-child(4) { display: none; }
+  .tbl th, .tbl td { padding: 0.65rem 0.45rem; }
+  #fab { right: 1rem; bottom: 1rem; }
+}
+
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
+    <span>Expense Tracker</span>
+  </div>
+  <nav class="tabs">
+    <button data-tab="dashboard" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+      <span>Dashboard</span>
+    </button>
+    <button data-tab="expenses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6.5h2.5M4 12h2.5M4 17.5h2.5M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/></svg>
+      <span>Expenses</span>
+    </button>
+    <button data-tab="budgets">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+      <span>Budgets</span>
+    </button>
+    <button data-tab="import">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v10.5M7.5 9.5L12 5l4.5 4.5"/><path d="M4.5 16v2.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V16"/></svg>
+      <span>Import</span>
+    </button>
+    <button id="acct-chip" class="acct-chip" hidden title="Account — open settings"></button>
+    <button id="btn-settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5h16M4 12h16M4 16.5h16"/><path d="M9.5 5.5v4M15 10v4M10.5 14.5v4"/></svg>
+    </button>
+  </nav>
+</header>
+<main class="container">
+
+  <!-- Dashboard -->
+  <section id="view-dashboard" class="view active">
+    <div class="toolbar">
+      <h1>Dashboard</h1>
+      <label class="month-pick">Month
+        <select id="dash-month"><option value="">All time</option></select>
+      </label>
+    </div>
+
+    <div id="review-banner" class="banner" style="display:none">
+      <span id="review-banner-text"></span>
+      <button id="review-banner-go" class="primary">Review now</button>
+    </div>
+
+    <section class="hero-cards">
+      <div class="card hero">
+        <div class="card-num" id="dash-total">0.00</div>
+        <div class="card-label">Spent <span id="dash-month-label"></span></div>
+        <div class="delta" id="dash-delta"></div>
+      </div>
+      <div class="card hero">
+        <div class="card-num" id="dash-count">0</div>
+        <div class="card-label">Transactions</div>
+      </div>
+      <div class="card hero">
+        <div class="card-num cat-line" id="dash-topcat">—</div>
+        <div class="card-label">Top category</div>
+      </div>
+    </section>
+
+    <div class="two-col">
+      <section class="card">
+        <h2>By category</h2>
+        <div class="donut-wrap">
+          <svg id="donut" viewBox="0 0 140 140" width="150" height="150"></svg>
+          <div class="donut-center">
+            <div class="donut-total" id="donut-total"></div>
+            <div class="muted" id="donut-ccy"></div>
+          </div>
+        </div>
+        <div id="cat-legend"></div>
+      </section>
+      <section class="card">
+        <h2>Last 30 days</h2>
+        <div id="bars" class="bars"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Spending by category</h2>
+      <div id="cat-rows"></div>
+    </section>
+  </section>
+
+  <!-- Expenses -->
+  <section id="view-expenses" class="view">
+    <div class="toolbar">
+      <h1>Expenses</h1>
+      <div class="chips" id="expense-chips">
+        <button class="chip active" data-chip="all">All</button>
+        <button class="chip warn" data-chip="review">Needs review <span id="chip-review-n"></span></button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="search">
+        <input type="text" id="f-q" placeholder="Search merchant…">
+        <select id="f-platform"><option value="">All platforms</option></select>
+        <select id="f-category"><option value="">All categories</option></select>
+        <input type="month" id="f-month">
+        <button id="f-apply">Filter</button>
+      </div>
+      <button id="btn-new-expense" class="primary">+ Add expense</button>
+    </div>
+    <div id="bulk-bar" class="bulk-bar" style="display:none">
+      <span id="bulk-count">0 selected</span>
+      <select id="bulk-cat"></select>
+      <button id="bulk-apply" class="primary">Apply category</button>
+    </div>
+    <table class="tbl">
+      <thead><tr>
+        <th class="bulk-col" style="display:none"><input type="checkbox" id="bulk-all"></th>
+        <th>Date</th><th>Merchant</th><th>Category</th>
+        <th>Platform</th><th class="amount">Amount</th><th></th>
+      </tr></thead>
+      <tbody id="expense-rows"></tbody>
+    </table>
+  </section>
+
+  <!-- Budgets -->
+  <section id="view-budgets" class="view">
+    <div class="toolbar">
+      <h1>Budgets</h1>
+      <label class="month-pick">Month
+        <select id="budget-month"></select>
+      </label>
+    </div>
+    <p class="muted">Set a monthly budget per category. Spending is tracked against it automatically.</p>
+    <div id="budget-rows"></div>
+  </section>
+
+  <!-- Import -->
+  <section id="view-import" class="view">
+    <h1>Import bills</h1>
+    <p class="muted">Export from your phone app, then upload the file here.
+    Parsed entirely in your browser — nothing is uploaded anywhere.</p>
+    <div class="two-col">
+      <section class="card">
+        <h2>WeChat Pay <span class="muted">— mainland RMB wallet</span></h2>
+        <ol class="steps">
+          <li>WeChat → <b>我 (Me)</b> → <b>服务 (Services)</b> → <b>钱包 (Wallet)</b></li>
+          <li>Tap <b>账单 (Bill)</b> top-right</li>
+          <li>Tap <b>···</b> top-right → <b>下载账单 (Download Bill)</b></li>
+          <li>Choose <b>用于个人对账 (For Personal Reconciliation)</b> — not 用作证明材料, pick dates</li>
+          <li>Face-verify → the bill arrives in the <b>微信支付</b> chat → tap <b>查看详情</b> → download</li>
+          <li>If it's a zip, unzip it → upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+        </ol>
+        <p class="muted">On <b>WeChat Pay HK</b>, if you don't see 下载账单, file export isn't offered on your wallet — log those transactions with the + button instead.</p>
+      </section>
+      <section class="card">
+        <h2>Alipay <span class="muted">— mainland</span></h2>
+        <ol class="steps">
+          <li>Alipay → <b>我的 (Me)</b> → <b>账单 (Bill)</b></li>
+          <li>Tap <b>···</b> top-right → <b>开具交易流水证明</b></li>
+          <li>Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates</li>
+          <li>Wait for the message → download the file</li>
+          <li>Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+        </ol>
+      </section>
+    </div>
+    <section class="card">
+      <h2>Upload</h2>
+      <div class="toolbar">
+        <input type="file" id="f-file" accept=".csv,.xlsx">
+        <button id="btn-import" class="primary">Parse file</button>
+      </div>
+      <div id="import-result" class="muted"></div>
+    </section>
+    <section class="card" id="review-card" style="display:none">
+      <h2>Review import</h2>
+      <p class="muted" id="review-summary"></p>
+      <table class="tbl">
+        <thead><tr>
+          <th><input type="checkbox" id="review-all" checked></th>
+          <th>Date</th><th>Merchant</th><th class="amount">Amount</th>
+          <th>Category</th><th></th>
+        </tr></thead>
+        <tbody id="review-rows"></tbody>
+      </table>
+      <div class="dlg-actions">
+        <button id="btn-review-cancel">Cancel</button>
+        <button id="btn-review-confirm" class="primary">Confirm import</button>
+      </div>
+    </section>
+  </section>
+
+</main>
+
+<!-- Auth (shown when backend is configured but nobody is signed in) -->
+<section id="view-auth" class="view">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
+    </div>
+    <h1>Expense Tracker</h1>
+    <p class="muted">Sign in to keep your expenses synced across your devices.</p>
+    <div id="auth-error" class="auth-error" style="display:none"></div>
+    <label>Email
+      <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com"></label>
+    <label>Password
+      <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••"></label>
+    <div class="auth-actions">
+      <button id="btn-signin" class="primary">Sign in</button>
+      <button id="btn-signup">Create account</button>
+    </div>
+    <p class="muted auth-note">Your data stays private — only you can see it.</p>
+  </div>
+</section>
+
+<button id="fab" title="Add expense"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+<div id="toast" class="toast"></div>
+
+<dialog id="dlg-expense">
+  <form method="dialog" id="frm-expense">
+    <h2 id="dlg-expense-title">New expense</h2>
+    <label>Amount <input type="number" step="0.01" min="0.01"
+           name="amount" id="f-amount" required></label>
+    <label>Currency
+      <select name="currency" id="f-currency">
+        <option value="CNY">CNY ¥</option>
+        <option value="HKD">HKD HK$</option>
+      </select></label>
+    <label>Date <input type="date" name="expense_date" id="f-date" required></label>
+    <label>Category <select name="category" id="f-cat"></select>
+      <div class="muted" id="cat-hint" style="display:none"></div></label>
+    <label>Platform <select name="platform" id="f-plat"></select></label>
+    <label>Merchant <input name="merchant" id="f-merchant"
+           placeholder="e.g. Starbucks" autocomplete="off"></label>
+    <label>Description <input name="description"></label>
+    <div class="dlg-actions">
+      <button type="submit" class="primary">Save</button>
+      <button type="button" id="btn-cancel-expense">Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-settings">
+  <form method="dialog" id="frm-settings">
+    <h2>Settings</h2>
+    <label>Display currency
+      <select id="set-ccy">
+        <option value="CNY">CNY (¥)</option>
+        <option value="HKD">HKD (HK$)</option>
+      </select></label>
+    <label>CNY → HKD rate
+      <input id="set-rate" type="number" step="0.0001" min="0">
+      <div class="muted">Used to convert between CNY and HKD in totals.</div></label>
+    <h3>Backup</h3>
+    <div class="toolbar">
+      <button type="button" id="btn-export-json">Export backup (JSON)</button>
+      <label class="file-btn">Restore backup
+        <input type="file" id="f-restore" accept=".json" hidden></label>
+    </div>
+    <h3>Backend</h3>
+    <div class="backend-row">
+      <span id="backend-status" class="status-pill">Local only</span>
+      <button type="button" id="btn-sync-now">Sync now</button>
+      <button type="button" id="btn-signout" style="display:none">Sign out</button>
+    </div>
+    <p class="muted" id="backend-detail"></p>
+    <h3 class="danger-zone">Danger zone</h3>
+    <button type="button" id="btn-wipe" class="danger">Delete all data</button>
+    <div class="dlg-actions">
+      <button type="submit" class="primary">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+/* Expense Tracker — static data layer.
+   browser-backed, no backend. Mirrors the Flask models.py API. */
+"use strict";
+
+/* Preview build: pure in-memory storage (no browser storage APIs), so the
+   live in-chat preview runs anywhere. Data lasts for this session only.
+   The shipped app uses browser storage via a safe shim instead. */
+const _memStore = Object.create(null);
+const storage = {
+  getItem: (k) => (k in _memStore ? _memStore[k] : null),
+  setItem: (k, v) => { _memStore[k] = String(v); },
+  removeItem: (k) => { delete _memStore[k]; },
+};
+
+const PLATFORMS = [
+  ["wechat", "WeChat Pay"],
+  ["alipay", "Alipay"],
+  ["cash", "Cash"],
+  ["bank", "Bank Card"],
+  ["other", "Other"],
+];
+const PLATFORM_LABELS = Object.fromEntries(PLATFORMS);
+
+const DEFAULT_CATEGORIES = [
+  "Food & Drink", "Groceries", "Transport", "Shopping", "Housing", "Utilities",
+  "Health", "Entertainment", "Travel", "Education", "Personal", "Other",
+];
+
+const DB = {
+  _read(key, fallback) {
+    try {
+      const raw = storage.getItem(key);
+      return raw ? JSON.parse(raw) : fallback;
+    } catch {
+      return fallback;
+    }
+  },
+  _write(key, value) {
+    storage.setItem(key, JSON.stringify(value));
+  },
+  _nextId() {
+    const n = (parseInt(storage.getItem("exp_seq") || "0", 10) || 0) + 1;
+    storage.setItem("exp_seq", String(n));
+    return n;
+  },
+  nowIso() {
+    return new Date().toISOString().slice(0, 19);
+  },
+
+  /* ---- Cloud sync bookkeeping (offline-first) ---------------------------
+     Every mutation queues a dirty entry; Sync pushes them in the background.
+     Guarded so the data layer works with or without sync.js loaded. */
+  _syncQueue() {
+    return this._read("exp_sync_queue", []);
+  },
+  markSyncDirty(table, op, ref, extra) {
+    const q = this._syncQueue();
+    q.push(Object.assign({ table, op, ref, at: this.nowIso() }, extra || {}));
+    this._write("exp_sync_queue", q);
+    if (typeof Sync !== "undefined") Sync.schedule();
+  },
+  takeSyncQueue() {
+    const q = this._syncQueue();
+    this._write("exp_sync_queue", []);
+    return q;
+  },
+  lastPull(table) {
+    return (this._read("exp_last_pull", {}))[table] || null;
+  },
+  setLastPull(table, iso) {
+    const m = this._read("exp_last_pull", {});
+    m[table] = iso;
+    this._write("exp_last_pull", m);
+  },
+
+  create(data) {
+    const list = this._read("exp_expenses", []);
+    // Deduplicate by external_id
+    if (data.external_id && list.some((e) => e.external_id === data.external_id)) {
+      return null;
+    }
+    const exp = {
+      id: this._nextId(),
+      cloud_id: null,
+      amount: parseFloat(data.amount),
+      currency: data.currency || "CNY",
+      category: data.category || "Other",
+      platform: data.platform || "other",
+      merchant: data.merchant || null,
+      description: data.description || null,
+      expense_date: data.expense_date,
+      external_id: data.external_id || null,
+      source: data.source || "manual",
+      cat_source: data.cat_source || "manual",
+      created_at: this.nowIso(),
+      updated_at: this.nowIso(),
+    };
+    list.push(exp);
+    this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "upsert", exp.id);
+    return exp.id;
+  },
+
+  list({ platform, category, month, search, limit = 200 } = {}) {
+    let list = this._read("exp_expenses", []);
+    if (platform) list = list.filter((e) => e.platform === platform);
+    if (category) list = list.filter((e) => e.category === category);
+    if (month) list = list.filter((e) => (e.expense_date || "").startsWith(month));
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((e) =>
+        ((e.merchant || "") + " " + (e.description || "")).toLowerCase().includes(q)
+      );
+    }
+    list.sort((a, b) =>
+      (b.expense_date || "").localeCompare(a.expense_date || "") || b.id - a.id
+    );
+    return list.slice(0, limit);
+  },
+
+  remove(id) {
+    const list = this._read("exp_expenses", []);
+    const i = list.findIndex((e) => String(e.id) === String(id));
+    if (i < 0) return false;
+    const [gone] = list.splice(i, 1);
+    this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "delete", id, { cloud_id: gone.cloud_id || null });
+    return true;
+  },
+
+  _inMonth(list, month) {
+    return month ? list.filter((e) => (e.expense_date || "").startsWith(month)) : list;
+  },
+
+  /* Amount converted to the user's display currency. */
+  _disp(e) {
+    return this.toDisplay(e.amount, e.currency);
+  },
+
+  byCategory(month) {
+    const map = {};
+    for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
+      const c = e.category || "Other";
+      map[c] = map[c] || { category: c, total: 0, n: 0 };
+      map[c].total += this._disp(e);
+      map[c].n++;
+    }
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  },
+
+  byPlatform(month) {
+    const map = {};
+    for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
+      const p = e.platform || "other";
+      map[p] = map[p] || { platform: p, total: 0, n: 0 };
+      map[p].total += this._disp(e);
+      map[p].n++;
+    }
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  },
+
+  monthlyTotals(limit = 12) {
+    const map = {};
+    for (const e of this._read("exp_expenses", [])) {
+      const m = (e.expense_date || "").slice(0, 7);
+      if (!m) continue;
+      map[m] = map[m] || { month: m, total: 0, n: 0 };
+      map[m].total += this._disp(e);
+      map[m].n++;
+    }
+    return Object.values(map)
+      .sort((a, b) => b.month.localeCompare(a.month))
+      .slice(0, limit)
+      .reverse();
+  },
+
+  grandTotal(month) {
+    let total = 0, n = 0;
+    for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
+      total += this._disp(e);
+      n++;
+    }
+    return { total, count: n };
+  },
+
+  months() {
+    return this.monthlyTotals(60).map((m) => m.month).reverse();
+  },
+
+  /* ---- v2 additions: edit, categorization memory, budgets, settings ---- */
+
+  update(id, data) {
+    const list = this._read("exp_expenses", []);
+    const e = list.find((x) => String(x.id) === String(id));
+    if (!e) return false;
+    for (const k of ["currency", "platform", "merchant", "description", "expense_date"]) {
+      if (data[k] !== undefined) e[k] = data[k];
+    }
+    if (data.amount !== undefined && data.amount !== "") e.amount = parseFloat(data.amount);
+    if (data.category && data.category !== e.category) {
+      this.setCategory(id, data.category, true);
+      return true;
+    }
+    e.updated_at = this.nowIso();
+    this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "upsert", e.id);
+    return true;
+  },
+
+  /* Recategorize + teach the merchant memory. Every manual correction
+     makes the next import smarter. */
+  setCategory(id, category, learn = true) {
+    const list = this._read("exp_expenses", []);
+    const e = list.find((x) => String(x.id) === String(id));
+    if (!e || !category) return false;
+    e.category = category;
+    e.cat_source = "manual";
+    e.updated_at = this.nowIso();
+    this._write("exp_expenses", list);
+    this.markSyncDirty("expenses", "upsert", e.id);
+    if (learn && e.merchant) this.learnMerchant(e.merchant, category);
+    return true;
+  },
+
+  bulkSetCategory(ids, category) {
+    const idset = new Set(ids.map(String));
+    const list = this._read("exp_expenses", []);
+    let n = 0;
+    for (const e of list) {
+      if (idset.has(String(e.id))) {
+        e.category = category;
+        e.cat_source = "manual";
+        e.updated_at = this.nowIso();
+        n++;
+        this.markSyncDirty("expenses", "upsert", e.id);
+        if (e.merchant) this.learnMerchant(e.merchant, category);
+      }
+    }
+    this._write("exp_expenses", list);
+    return n;
+  },
+
+  getMerchantMemory() {
+    return this._read("exp_merchant_memory", {});
+  },
+
+  learnMerchant(merchant, category) {
+    const key = String(merchant || "").toLowerCase().replace(/\s+/g, " ").trim();
+    if (!key || !category || category === "Other") return;
+    const mem = this.getMerchantMemory();
+    mem[key] = category;
+    this._write("exp_merchant_memory", mem);
+    this.markSyncDirty("memory", "upsert", key);
+  },
+
+  getUserRules() {
+    return this._read("exp_user_rules", []);
+  },
+
+  addUserRule(pattern, category) {
+    const rules = this.getUserRules();
+    const rule = { id: Date.now(), cloud_id: null, pattern: String(pattern).trim(), category };
+    rules.push(rule);
+    this._write("exp_user_rules", rules);
+    this.markSyncDirty("rules", "upsert", rule.id);
+  },
+
+  removeUserRule(id) {
+    const rules = this.getUserRules();
+    const gone = rules.find((r) => String(r.id) === String(id));
+    this._write("exp_user_rules",
+      rules.filter((r) => String(r.id) !== String(id)));
+    if (gone) this.markSyncDirty("rules", "delete", id, { cloud_id: gone.cloud_id || null });
+  },
+
+  getBudgets(month) {
+    return (this._read("exp_budgets", {}))[month] || {};
+  },
+
+  setBudget(month, category, amount) {
+    const all = this._read("exp_budgets", {});
+    const m = all[month] || {};
+    const v = parseFloat(amount);
+    if (v > 0) {
+      m[category] = v;
+      this.markSyncDirty("budgets", "upsert", month + "|" + category);
+    } else {
+      delete m[category];
+      this.markSyncDirty("budgets", "delete", month + "|" + category);
+    }
+    all[month] = m;
+    this._write("exp_budgets", all);
+  },
+
+  getSettings() {
+    return Object.assign(
+      { display_currency: "CNY", cny_to_hkd: 1.08 },
+      this._read("exp_settings", {})
+    );
+  },
+
+  saveSettings(patch) {
+    this._write("exp_settings", Object.assign(this.getSettings(), patch));
+    this.markSyncDirty("settings", "upsert", "settings");
+  },
+
+  toDisplay(amount, currency) {
+    const s = this.getSettings();
+    const from = String(currency || "CNY").toUpperCase();
+    const to = String(s.display_currency || "CNY").toUpperCase();
+    if (from === to) return amount;
+    const rate = parseFloat(s.cny_to_hkd) || 1;
+    if (from === "CNY" && to === "HKD") return amount * rate;
+    if (from === "HKD" && to === "CNY") return amount / rate;
+    return amount;
+  },
+
+  displaySymbol() {
+    return (this.getSettings().display_currency || "CNY").toUpperCase() === "HKD"
+      ? "HK$" : "¥";
+  },
+
+  needsReview() {
+    return this._read("exp_expenses", [])
+      .filter((e) => e.cat_source === "unreviewed")
+      .sort((a, b) => (b.expense_date || "").localeCompare(a.expense_date || ""));
+  },
+
+  exportAll() {
+    return {
+      app: "expense-tracker",
+      version: 2,
+      exported_at: this.nowIso(),
+      expenses: this._read("exp_expenses", []),
+      merchant_memory: this.getMerchantMemory(),
+      user_rules: this.getUserRules(),
+      budgets: this._read("exp_budgets", {}),
+      settings: this.getSettings(),
+    };
+  },
+
+  importAll(data) {
+    if (!data || data.app !== "expense-tracker" || !Array.isArray(data.expenses)) {
+      throw new Error("Not a valid expense-tracker backup file.");
+    }
+    this._write("exp_expenses", data.expenses);
+    this._write("exp_merchant_memory", data.merchant_memory || {});
+    this._write("exp_user_rules", data.user_rules || []);
+    this._write("exp_budgets", data.budgets || {});
+    if (data.settings) this._write("exp_settings", data.settings);
+    const maxId = data.expenses.reduce((m, e) => Math.max(m, parseInt(e.id, 10) || 0), 0);
+    storage.setItem("exp_seq", String(maxId));
+    // Restored data needs a full push on next sync.
+    storage.setItem("exp_sync_reseed", "1");
+    if (typeof Sync !== "undefined") Sync.schedule();
+  },
+
+  /* One-time: old rows (v1) have no cat_source — treat as user-confirmed
+     so they don't flood the review inbox. Also backfills the sync fields. */
+  migrate() {
+    if (storage.getItem("exp_migrated_v2")) return;
+    const list = this._read("exp_expenses", []);
+    let changed = false;
+    for (const e of list) {
+      if (!e.cat_source) { e.cat_source = "manual"; changed = true; }
+      if (!e.updated_at) { e.updated_at = e.created_at || this.nowIso(); changed = true; }
+      if (!("cloud_id" in e)) { e.cloud_id = null; changed = true; }
+    }
+    if (changed) this._write("exp_expenses", list);
+    const rules = this._read("exp_user_rules", []);
+    let rChanged = false;
+    for (const r of rules) {
+      if (!("cloud_id" in r)) { r.cloud_id = null; rChanged = true; }
+    }
+    if (rChanged) this._write("exp_user_rules", rules);
+    storage.setItem("exp_migrated_v2", "1");
+  },
+};
+
+</script>
+<script>
+/* Expense Tracker — auto-categorization engine (v2).
+   Deterministic pipeline, no AI, no network:
+     1. user rules (pattern -> category, first match wins)
+     2. merchant memory (learned from the user's own corrections)
+     3. keyword defaults (HK-sensible starter set, bilingual)
+     4. null -> goes to the "Needs review" inbox, never silently "Other"
+   Pure logic: DB.getUserRules() / DB.getMerchantMemory() are the only
+   dependencies, so this file is unit-testable in node with a stub. */
+"use strict";
+
+/* Line-icon set (24x24, stroke=currentColor). Rendered into .cat-ico spans;
+   keep each icon one <svg> so innerHTML injection just works. */
+const _sw = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"';
+const _svg = (inner) => `<svg ${_sw}>${inner}</svg>`;
+
+const CATEGORIES = {
+  "Food & Drink":  { zh: "餐饮", color: "#c05621", icon: _svg('<path d="M7 9.5h10l-1.1 8.3a1.6 1.6 0 0 1-1.6 1.4H9.7a1.6 1.6 0 0 1-1.6-1.4L7 9.5z"/><path d="M17 10.5h1.3a2.4 2.4 0 0 1 0 4.8H16.7"/><path d="M10 6.2c0-1.1.9-1.2.9-2.3M13.6 6.2c0-1.1.9-1.2.9-2.3"/>') },
+  "Groceries":     { zh: "超市", color: "#5b8c3e", icon: _svg('<path d="M4.5 11h15l-1.5 7.6a2 2 0 0 1-2 1.6H8a2 2 0 0 1-2-1.6L4.5 11z"/><path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11"/>') },
+  "Transport":     { zh: "交通", color: "#3e6b8c", icon: _svg('<rect x="5" y="4.5" width="14" height="10.5" rx="2"/><path d="M5 10h14"/><circle cx="8.6" cy="17.8" r="1.5"/><circle cx="15.4" cy="17.8" r="1.5"/>') },
+  "Shopping":      { zh: "购物", color: "#8c5b7a", icon: _svg('<path d="M6.2 8h11.6l-.9 11.2a1.6 1.6 0 0 1-1.6 1.5H8.7a1.6 1.6 0 0 1-1.6-1.5L6.2 8z"/><path d="M9.2 10.5V6.4a2.8 2.8 0 0 1 5.6 0v4.1"/>') },
+  "Housing":       { zh: "住房", color: "#a67c3d", icon: _svg('<path d="M4.5 11L12 4.5 19.5 11"/><path d="M6.5 9.8V19.5h11V9.8"/><path d="M10.2 19.5v-4.8h3.6v4.8"/>') },
+  "Utilities":     { zh: "杂费", color: "#6b7280", icon: _svg('<path d="M9.5 18h5"/><path d="M10.5 20.8h3"/><path d="M12 3.5a5.8 5.8 0 0 0-3.5 10.4c.7.6 1.1 1.3 1.3 2.1h4.4c.2-.8.6-1.5 1.3-2.1A5.8 5.8 0 0 0 12 3.5z"/>') },
+  "Health":        { zh: "健康", color: "#3e8c6b", icon: _svg('<path d="M12 20s-6.8-4.2-6.8-9.7A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 6.8 2.7c0 5.5-6.8 9.7-6.8 9.7z"/><path d="M7.5 12h2.6l1.4-2.8 1.9 4.8 1.4-2h2"/>') },
+  "Entertainment": { zh: "娱乐", color: "#b23a48", icon: _svg('<rect x="4" y="5.5" width="16" height="13" rx="2"/><path d="M8 5.5v13M16 5.5v13M4 10h4M4 14h4M16 10h4M16 14h4"/>') },
+  "Travel":        { zh: "旅行", color: "#4a7fb5", icon: _svg('<path d="M20.5 3.5L3.5 10.6l6.8 2.4 2.4 6.8 7.8-16.3z"/><path d="M20.5 3.5L10.3 13"/>') },
+  "Education":     { zh: "教育", color: "#8c6b3e", icon: _svg('<path d="M12 6.2C10 4.7 7 4.2 4 4.2v13.6c3 0 6 .5 8 2 2-1.5 5-2 8-2V4.2c-3 0-6 .5-8 2z"/><path d="M12 6.2v13.6"/>') },
+  "Personal":      { zh: "个人", color: "#7a5fa8", icon: _svg('<circle cx="12" cy="8" r="3.4"/><path d="M5.2 19.8a6.8 6.8 0 0 1 13.6 0"/>') },
+  "Other":         { zh: "其他", color: "#9a958a", icon: _svg('<path d="M4.5 8L12 4.2 19.5 8v7.8L12 19.8 4.5 15.8V8z"/><path d="M4.5 8L12 12l7.5-4M12 12v7.5"/>') },
+};
+const CATEGORY_IDS = Object.keys(CATEGORIES);
+
+function catMeta(category) {
+  return CATEGORIES[category] || CATEGORIES["Other"];
+}
+/* "Food & Drink 餐饮" — text only, safe for <option> elements.
+   The SVG icon lives in m.icon and is rendered into .cat-ico spans. */
+function catLabel(category) {
+  const m = catMeta(category);
+  const en = category || "Other";
+  return `${en} ${m.zh}`;
+}
+
+function normMerchant(s) {
+  return String(s == null ? "" : s).toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/* Ordered by priority: earlier categories win on keyword overlap. */
+const CATEGORY_KEYWORDS = [
+  ["Food & Drink", [
+    "星巴克", "starbucks", "麦当劳", "mcdonald", "肯德基", "kfc", "大家乐",
+    "大快活", "茶餐厅", "茶楼", "酒楼", "火锅", "hotpot", "点心", "dimsum",
+    "餐厅", "restaurant", "cafe", "café", "coffee", "咖啡", "奶茶", "喜茶",
+    "奈雪", "pizza", "寿司", "sushi", "burger", "面包", "bakery",
+    "foodpanda", "deliveroo", "keeta", "food", "dine", "dining",
+    "早餐", "午餐", "晚餐", "lunch", "dinner", "breakfast", "小食", "snack",
+    "甜品", "dessert", "糖水",
+  ]],
+  ["Groceries", [
+    "7-eleven", "7eleven", "711", "ok便利店", "circle k", "circlek",
+    "惠康", "wellcome", "百佳", "parknshop", "超市", "supermarket",
+    "citysuper", "market place", "一田", "donki", "759", "阿信屋",
+    "街市", "菜市场",
+  ]],
+  ["Transport", [
+    "港铁", "mtr", "九巴", "kmb", "城巴", "citybus", "巴士", "bus",
+    "的士", "taxi", "uber", "didi", "滴滴", "打车", "高铁", "机场快线",
+    "airport express", "渡轮", "ferry", "天星小轮", "停车", "parking",
+    "加油", "petrol", "shell", "esso", "caltex", "中石化", "八达通",
+    "octopus",
+  ]],
+  ["Shopping", [
+    "淘宝", "taobao", "京东", "jd.com", "拼多多", "pinduoduo", "amazon",
+    "uniqlo", "优衣库", "无印良品", "muji", "屈臣氏", "watsons", "万宁",
+    "mannings", "sasa", "莎莎", "卓悦", "bonjour", "nike", "adidas",
+    "apple", "丰泽", "fortress", "百老汇电器", "sogo", "崇光",
+    "海港城", "harbour city", "shopping", "购物",
+  ]],
+  ["Housing", [
+    "房租", "rent", "管理费", "management fee", "物业", "供楼",
+    "mortgage", "差餉", "rates", "租金",
+  ]],
+  ["Utilities", [
+    "电费", "electricity", "水费", "水务", "煤气", "gas", "中华煤气",
+    "towngas", "电话费", "手机费", "mobile", "宽带", "broadband",
+    "上网", "internet", "netvigator", "csl", "3hk", "3香港", "smarTone",
+    "数码通", "中国移动", "china mobile", "中国联通", "unicom",
+    "now tv", "nowtv",
+  ]],
+  ["Health", [
+    "医院", "hospital", "诊所", "clinic", "药房", "pharmacy", "药",
+    "牙科", "dental", "体检", "checkup", "中医", "tcm", "眼科",
+    "物理治疗", "physio",
+  ]],
+  ["Entertainment", [
+    "电影", "cinema", "戏院", "电影院", "mcl", "演唱会", "concert",
+    "ktv", "酒吧", "bar", "游戏", "game", "steam", "nintendo",
+    "playstation", "netflix", "spotify", "disney", "youtube premium",
+    "按摩", "massage", "spa", "健身", "gym", "pure fitness", "瑜伽",
+    "yoga", "卡拉ok", "karaoke",
+  ]],
+  ["Travel", [
+    "酒店", "hotel", "机票", "flight", "航班", "航空", "airline",
+    "国泰", "cathay pacific", "trip.com", "tripcom", "携程", "ctrip",
+    "agoda", "booking.com", "airbnb", "expedia", "旅行", "travel",
+    "签证", "visa application", "港珠澳", "hzm",
+  ]],
+  ["Education", [
+    "学校", "school", "课程", "course", "udemy", "coursera", "书店",
+    "bookstore", "商务印书馆", "commercial press", "补习", "tutorial",
+    "学费", "tuition",
+  ]],
+  ["Personal", [
+    "理发", "haircut", "salon", "发廊", "美容", "beauty", "美甲",
+    "nail", "洗衣", "laundry", "干洗",
+  ]],
+];
+
+const Categorizer = {
+  /* Returns { category: string|null, via: "rule"|"memory"|"keyword"|"none" }.
+     Merchant name is matched before the description — the merchant is the
+     stronger signal ("7-Eleven" + "早餐" is Groceries, not Food & Drink). */
+  propose(merchant, description) {
+    const merch = normMerchant(merchant || "");
+    const hay = normMerchant(merch + " " + (description || ""));
+    if (!hay) return { category: null, via: "none" };
+    for (const r of DB.getUserRules()) {
+      if (r.pattern && hay.includes(normMerchant(r.pattern))) {
+        return { category: r.category, via: "rule" };
+      }
+    }
+    const mem = DB.getMerchantMemory();
+    const remembered = mem[merch];
+    if (remembered && CATEGORIES[remembered]) {
+      return { category: remembered, via: "memory" };
+    }
+    const byKeyword = (text) => {
+      for (const [cat, kws] of CATEGORY_KEYWORDS) {
+        for (const k of kws) {
+          if (text.includes(k)) return cat;
+        }
+      }
+      return null;
+    };
+    const m1 = merch && byKeyword(merch);
+    if (m1) return { category: m1, via: "keyword" };
+    const m2 = byKeyword(hay);
+    if (m2) return { category: m2, via: "keyword" };
+    return { category: null, via: "none" };
+  },
+
+  learn(merchant, category) {
+    DB.learnMerchant(merchant, category);
+  },
+};
+
+/* node test harness: `node categorize.js --test` with a DB stub */
+if (typeof module !== "undefined" && require.main === module) {
+  const assert = require("assert");
+  global.DB = {
+    getUserRules: () => [{ pattern: "Netflix", category: "Entertainment" }],
+    getMerchantMemory: () => ({ "7-eleven": "Groceries" }),
+  };
+  const cases = [
+    ["Starbucks", "Coffee", "Food & Drink", "keyword"],
+    ["7-Eleven", "Snacks", "Groceries", "memory"],
+    ["NETFLIX", "", "Entertainment", "rule"],
+    ["港铁", "车费", "Transport", "keyword"],
+    ["大家乐", "", "Food & Drink", "keyword"],
+    ["惠康", " groceries", "Groceries", "keyword"],
+    ["7-Eleven", "早餐", "Groceries", "memory"], // memory outranks keyword
+    ["XYZ Unknown", "打车去机场", "Transport", "keyword"], // description fallback
+    ["XYZ Unknown Merchant 123", "", null, "none"],
+    ["", "", null, "none"],
+  ];
+  for (const [m, d, want, via] of cases) {
+    const r = Categorizer.propose(m, d);
+    assert.strictEqual(r.category, want, `${m} -> ${r.category} (want ${want})`);
+    assert.strictEqual(r.via, via, `${m} via ${r.via} (want ${via})`);
+  }
+  console.log("categorize.js: all", cases.length, "tests passed");
+}
+
+</script>
+<script>
+/* WeChat Pay / Alipay bill import — ported from importers.py.
+   Parses CSV text in the browser. xlsx is handled via SheetJS (CDN). */
+"use strict";
+
+const Importers = {
+  // --- Column markers ------------------------------------------------------
+  WECHAT_ID: "交易单号",
+  WECHAT_EXPENSE: ["支出", "Expense"],
+  WECHAT_OK_STATUS: ["支付成功", "已支付", "交易成功", "完成", "已转账", "对方已收钱", ""],
+  WECHAT_REFUND: ["退款", "退还", "Refund"],
+  ALIPAY_ID: "交易订单号",
+
+  _findHeader(rows, marker) {
+    for (let i = 0; i < rows.length; i++) {
+      if (rows[i].some((c) => (c || "").includes(marker))) return i;
+    }
+    return -1;
+  },
+
+  _col(row, header, name) {
+    for (let i = 0; i < header.length; i++) {
+      if ((header[i] || "").includes(name)) {
+        return ((row[i] || "").trim());
+      }
+    }
+    return "";
+  },
+
+  _parseCSV(text) {
+    // Minimal CSV parser handling quoted fields
+    const rows = [];
+    let row = [], field = "", inQ = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQ) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; }
+          else inQ = false;
+        } else field += c;
+      } else if (c === '"') inQ = true;
+      else if (c === ",") { row.push(field); field = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && text[i + 1] === "\n") i++;
+        row.push(field); field = "";
+        if (row.some((f) => f.trim())) rows.push(row);
+        row = [];
+      } else field += c;
+    }
+    if (field || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  },
+
+  parseWechat(rows) {
+    const hi = this._findHeader(rows, this.WECHAT_ID);
+    if (hi < 0) return [];
+    const header = rows[hi];
+    const out = [];
+    for (const row of rows.slice(hi + 1)) {
+      if (!row.some((c) => (c || "").trim())) continue;
+      const direction = this._col(row, header, "收/支");
+      if (!this.WECHAT_EXPENSE.some((m) => direction.includes(m))) continue;
+      const status = this._col(row, header, "当前状态");
+      if (status && !this.WECHAT_OK_STATUS.some((s) => status.includes(s))) continue;
+      if (this.WECHAT_REFUND.some((m) => status.includes(m))) continue;
+      const txid = this._col(row, header, this.WECHAT_ID);
+      // Strip everything except digits/dot/minus — survives ¥, ￥, commas,
+      // spaces, or a mojibake currency symbol from a mis-decoded file.
+      const amountRaw = this._col(row, header, "金额").replace(/[^\d.\-]/g, "");
+      const amount = Math.abs(parseFloat(amountRaw));
+      if (!amount || !txid) continue;
+      const timeRaw = this._col(row, header, "交易时间");
+      const date = timeRaw ? timeRaw.split(" ")[0] : "";
+      const merchant = this._col(row, header, "交易对方");
+      const product = this._col(row, header, "商品") || merchant;
+      out.push({
+        amount, currency: "CNY", category: "Other", platform: "wechat",
+        merchant, description: product, expense_date: date,
+        external_id: "wechat:" + txid, source: "wechat_import",
+      });
+    }
+    return out;
+  },
+
+  parseAlipay(rows) {
+    const hi = this._findHeader(rows, this.ALIPAY_ID);
+    if (hi < 0) return [];
+    const header = rows[hi];
+    const out = [];
+    for (const row of rows.slice(hi + 1)) {
+      if (!row.some((c) => (c || "").trim())) continue;
+      const txid = this._col(row, header, this.ALIPAY_ID);
+      const amountRaw = (this._col(row, header, "金额") ||
+        this._col(row, header, "交易金额")).replace(/[^\d.\-]/g, "");
+      const direction = this._col(row, header, "收/支") || this._col(row, header, "资金流向");
+      const status = this._col(row, header, "交易状态") || this._col(row, header, "状态");
+      let amount = parseFloat(amountRaw);
+      if (!amount || !txid) continue;
+      const isExpense = amount < 0 ||
+        ["支出", "Expense", "流出"].some((m) => direction.includes(m));
+      if (!isExpense && direction) continue;
+      amount = Math.abs(amount);
+      if (["退款", "关闭", "失败"].some((m) => status.includes(m))) continue;
+      const timeRaw = this._col(row, header, "交易创建时间") || this._col(row, header, "交易时间");
+      const date = timeRaw ? timeRaw.split(" ")[0] : "";
+      const merchant = this._col(row, header, "交易对方") || this._col(row, header, "对方");
+      const product = this._col(row, header, "商品名称") ||
+        this._col(row, header, "商品说明") || merchant;
+      out.push({
+        amount, currency: "CNY", category: "Other", platform: "alipay",
+        merchant, description: product, expense_date: date,
+        external_id: "alipay:" + txid, source: "alipay_import",
+      });
+    }
+    return out;
+  },
+
+  detectAndParseRows(rows) {
+    if (!rows || !rows.length) return { platform: null, expenses: [] };
+    const flat = rows.slice(0, 30).map((r) => r.join(" ")).join(" ");
+    if (flat.includes(this.WECHAT_ID)) return { platform: "wechat", expenses: this.parseWechat(rows) };
+    if (flat.includes(this.ALIPAY_ID)) return { platform: "alipay", expenses: this.parseAlipay(rows) };
+    return { platform: null, expenses: [] };
+  },
+
+  async parseFile(file) {
+    const name = file.name.toLowerCase();
+    if (name.endsWith(".xlsx")) {
+      // SheetJS from CDN
+      if (typeof XLSX === "undefined") {
+        throw new Error("xlsx library not loaded — check internet connection.");
+      }
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false });
+      return this.detectAndParseRows(rows.map((r) => r.map(String)));
+    }
+    // CSV — try encodings
+    const buf = await file.arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let text = null;
+    for (const enc of ["utf-8", "gb18030", "gbk"]) {
+      try {
+        text = new TextDecoder(enc, { fatal: true }).decode(bytes);
+        // Heuristic: must contain CJK or be plausible
+        if (text.includes("�")) continue;
+        break;
+      } catch { continue; }
+    }
+    if (text == null) {
+      // Last resort (non-fatal): a stray undecodable byte (e.g. a GBK-encoded
+      // ¥) shouldn't sink the whole file. Prefer the decode that keeps CJK.
+      const gb = new TextDecoder("gb18030").decode(bytes);
+      const utf = new TextDecoder("utf-8").decode(bytes);
+      text = (gb.includes(this.WECHAT_ID) || gb.includes(this.ALIPAY_ID)) ? gb : utf;
+    }
+    // Strip BOM
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    return this.detectAndParseRows(this._parseCSV(text));
+  },
+};
+
+</script>
+<script>
+/* Backend config — Supabase.
+   1. Create a free project at supabase.com (sign in with GitHub).
+   2. SQL Editor → paste supabase-setup.sql → Run.
+   3. Authentication → Providers → Email → turn OFF "Confirm email".
+   4. Settings → API → copy Project URL + publishable key below.
+   Leave both empty to run in local-only mode (data stays in this browser). */
+const BACKEND = {
+  url: "https://cgbtthjtnznedyxwtmuo.supabase.co",
+  key: "sb_publishable_Oyf_FJz-UyfpH6maO-nDhg_d4-wAaRv", // publishable key — safe to ship in the app. NEVER the secret key.
+};
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.52.0"></script>
+<script>
+/* Expense Tracker — cloud adapter (Supabase).
+   Thin wrapper around supabase-js. All data access goes through Sync;
+   nothing else in the app talks to this directly except the auth UI. */
+"use strict";
+
+const Cloud = {
+  client: null,
+  _user: null,
+
+  configured() {
+    return typeof BACKEND !== "undefined" && !!(BACKEND.url && BACKEND.key);
+  },
+  ready() {
+    return this.configured() && typeof supabase !== "undefined";
+  },
+  signedIn() {
+    return !!this._user;
+  },
+  user() {
+    return this._user;
+  },
+
+  async init() {
+    if (!this.ready()) return false;
+    this.client = supabase.createClient(BACKEND.url, BACKEND.key);
+    try {
+      const { data } = await this.client.auth.getSession();
+      this._user = data.session ? data.session.user : null;
+    } catch {
+      this._user = null;
+    }
+    this.client.auth.onAuthStateChange((_event, session) => {
+      const wasIn = !!this._user;
+      this._user = session ? session.user : null;
+      if (typeof onCloudAuthChange === "function") onCloudAuthChange(this._user, wasIn);
+    });
+    return true;
+  },
+
+  async signUp(email, password) {
+    const { data, error } = await this.client.auth.signUp({ email, password });
+    if (error) throw error;
+    this._user = data.user;
+    return data.user;
+  },
+
+  async signIn(email, password) {
+    const { data, error } = await this.client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    this._user = data.user;
+    return data.user;
+  },
+
+  async signOut() {
+    await this.client.auth.signOut();
+    const wasIn = !!this._user;
+    this._user = null;
+    // Update the UI directly — don't rely solely on the auth event round-trip.
+    if (typeof onCloudAuthChange === "function") onCloudAuthChange(null, wasIn);
+  },
+
+  /* Generic table ops used by the sync engine. Rows must already include
+     user_id and (for upserts) the key columns. Returns the saved rows. */
+  async upsert(table, rows, onConflict) {
+    if (!rows.length) return [];
+    const { data, error } = await this.client
+      .from(table).upsert(rows, { onConflict }).select();
+    if (error) throw error;
+    return data || [];
+  },
+
+  async remove(table, keyCol, ids) {
+    if (!ids.length) return;
+    const { error } = await this.client.from(table).delete().in(keyCol, ids);
+    if (error) throw error;
+  },
+
+  async removeWhere(table, match) {
+    const { error } = await this.client.from(table).delete().match(match);
+    if (error) throw error;
+  },
+
+  async fetchAll(table) {
+    const { data, error } = await this.client.from(table).select("*");
+    if (error) throw error;
+    return data || [];
+  },
+};
+
+</script>
+<script>
+/* Expense Tracker — offline-first sync engine.
+   Local storage stays the UI's source of truth (instant, works offline).
+   This mirrors changes to Supabase in the background:
+     - every local mutation queues a dirty entry (see DB.markSyncDirty)
+     - push: upserts/deletes by cloud key (idempotent — safe to retry)
+     - pull: last-write-wins on updated_at; detects remote deletes
+   Single-user scale; no conflict UI — newest timestamp wins. */
+"use strict";
+
+const Sync = {
+  status: "local", // local | ready | syncing | synced | error
+  lastError: null,
+  _running: false,
+  _timer: null,
+
+  _setStatus(s, detail) {
+    this.status = s;
+    if (typeof renderSyncStatus === "function") renderSyncStatus(detail);
+  },
+
+  /* Debounced push after local edits. */
+  schedule() {
+    if (!Cloud.signedIn()) return;
+    clearTimeout(this._timer);
+    this._timer = setTimeout(() => this.syncNow(), 2500);
+  },
+
+  async syncNow() {
+    if (!Cloud.signedIn() || this._running) return;
+    this._running = true;
+    this._setStatus("syncing");
+    try {
+      if (storage.getItem("exp_sync_reseed")) {
+        this._enqueueAll();
+        storage.removeItem("exp_sync_reseed");
+      }
+      await this._pushQueue();
+      await this._pullAll();
+      this.lastError = null;
+      this._setStatus("synced");
+      if (typeof renderAll === "function") renderAll();
+    } catch (e) {
+      this.lastError = (e && e.message) || String(e);
+      this._setStatus("error");
+    }
+    this._running = false;
+  },
+
+  /* ---- push ---------------------------------------------------------- */
+  async _pushQueue() {
+    const q = DB.takeSyncQueue();
+    if (!q.length) return;
+    try {
+      for (const item of q) await this._pushItem(item);
+    } catch (e) {
+      // Upserts/deletes are idempotent: re-queue the whole batch safely.
+      DB._write("exp_sync_queue", q.concat(DB._read("exp_sync_queue", [])));
+      throw e;
+    }
+  },
+
+  /* UUID for cloud rows, assigned client-side before the first push so every
+     upsert carries a real id (Postgres rejects an explicit NULL id). */
+  _newUuid() {
+    if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  },
+
+  _pushItem(item) {
+    const uid = Cloud.user().id;
+    switch (item.table) {
+      case "expenses": {
+        if (item.op === "delete") {
+          if (item.cloud_id) return Cloud.remove("expenses", "id", [item.cloud_id]);
+          return null;
+        }
+        const list = DB._read("exp_expenses", []);
+        const e = list.find((x) => String(x.id) === String(item.ref));
+        if (!e) return null;
+        if (!e.cloud_id) {
+          e.cloud_id = this._newUuid();
+          DB._write("exp_expenses", list);
+        }
+        const row = {
+          id: e.cloud_id,
+          user_id: uid,
+          amount: e.amount, currency: e.currency, category: e.category,
+          merchant: e.merchant, description: e.description, platform: e.platform,
+          expense_date: e.expense_date || null, external_id: e.external_id,
+          source: e.source, cat_source: e.cat_source,
+          created_at: e.created_at, updated_at: e.updated_at,
+        };
+        return Cloud.upsert("expenses", [row], "id");
+      }
+      case "memory": {
+        const mem = DB.getMerchantMemory();
+        const cat = mem[item.ref];
+        if (!cat) return null;
+        return Cloud.upsert("merchant_memory",
+          [{ user_id: uid, merchant: item.ref, category: cat, updated_at: DB.nowIso() }],
+          "user_id,merchant");
+      }
+      case "rules": {
+        if (item.op === "delete") {
+          if (item.cloud_id) return Cloud.remove("user_rules", "id", [item.cloud_id]);
+          return null;
+        }
+        const list = DB.getUserRules();
+        const r = list.find((x) => String(x.id) === String(item.ref));
+        if (!r) return null;
+        if (!r.cloud_id) {
+          r.cloud_id = this._newUuid();
+          DB._write("exp_user_rules", list);
+        }
+        const row = { id: r.cloud_id, user_id: uid,
+                      pattern: r.pattern, category: r.category };
+        return Cloud.upsert("user_rules", [row], "id");
+      }
+      case "budgets": {
+        const [month, category] = String(item.ref).split("|");
+        if (item.op === "delete") {
+          return Cloud.removeWhere("budgets", { user_id: uid, category, month });
+        }
+        const amt = (DB.getBudgets(month))[category];
+        if (!amt) return null;
+        return Cloud.upsert("budgets",
+          [{ user_id: uid, category, month, amount: amt, updated_at: DB.nowIso() }],
+          "user_id,category,month");
+      }
+      case "settings": {
+        const s = DB.getSettings();
+        return Cloud.upsert("app_settings",
+          [{ user_id: uid, display_currency: s.display_currency,
+             cny_hkd_rate: s.cny_to_hkd || null, updated_at: DB.nowIso() }],
+          "user_id");
+      }
+      default:
+        return null;
+    }
+  },
+
+  /* Queue everything (first sign-in with existing local data). */
+  _enqueueAll() {
+    for (const e of DB._read("exp_expenses", []))
+      DB.markSyncDirty("expenses", "upsert", e.id);
+    for (const k of Object.keys(DB.getMerchantMemory()))
+      DB.markSyncDirty("memory", "upsert", k);
+    for (const r of DB.getUserRules())
+      DB.markSyncDirty("rules", "upsert", r.id);
+    const all = DB._read("exp_budgets", {});
+    for (const month of Object.keys(all))
+      for (const cat of Object.keys(all[month]))
+        DB.markSyncDirty("budgets", "upsert", month + "|" + cat);
+    DB.markSyncDirty("settings", "upsert", "settings");
+  },
+
+  /* ---- pull ----------------------------------------------------------- */
+  async _pullAll() {
+    await this._pullExpenses();
+    await this._pullRules();
+    await this._pullMemory();
+    await this._pullBudgets();
+    await this._pullSettings();
+  },
+
+  _pullExpenses() {
+    return Cloud.fetchAll("expenses").then((rows) => {
+      const local = DB._read("exp_expenses", []);
+      const byCloud = new Map(local.filter((e) => e.cloud_id).map((e) => [e.cloud_id, e]));
+      const seen = new Set();
+      let changed = false;
+      for (const r of rows) {
+        seen.add(r.id);
+        const e = byCloud.get(r.id);
+        if (!e) {
+          local.push({
+            id: DB._nextId(), cloud_id: r.id,
+            amount: parseFloat(r.amount), currency: r.currency, category: r.category,
+            merchant: r.merchant, description: r.description, platform: r.platform,
+            expense_date: r.expense_date, external_id: r.external_id,
+            source: r.source, cat_source: r.cat_source,
+            created_at: r.created_at, updated_at: r.updated_at,
+          });
+          changed = true;
+        } else if ((r.updated_at || "") > (e.updated_at || "")) {
+          Object.assign(e, {
+            amount: parseFloat(r.amount), currency: r.currency, category: r.category,
+            merchant: r.merchant, description: r.description, platform: r.platform,
+            expense_date: r.expense_date, external_id: r.external_id,
+            source: r.source, cat_source: r.cat_source, updated_at: r.updated_at,
+          });
+          changed = true;
+        }
+      }
+      // Remote deletes: had a cloud id, gone from cloud, not edited since last pull.
+      const lastPull = DB.lastPull("expenses");
+      for (let i = local.length - 1; i >= 0; i--) {
+        const e = local[i];
+        if (e.cloud_id && !seen.has(e.cloud_id) && lastPull && (e.updated_at || "") <= lastPull) {
+          local.splice(i, 1);
+          changed = true;
+        }
+      }
+      if (changed) DB._write("exp_expenses", local);
+      DB.setLastPull("expenses", new Date().toISOString());
+    });
+  },
+
+  _pullRules() {
+    return Cloud.fetchAll("user_rules").then((rows) => {
+      const local = DB.getUserRules();
+      const byCloud = new Map(local.filter((r) => r.cloud_id).map((r) => [r.cloud_id, r]));
+      const seen = new Set();
+      let changed = false;
+      for (const r of rows) {
+        seen.add(r.id);
+        const l = byCloud.get(r.id);
+        if (!l) {
+          local.push({ id: Date.now() + Math.floor(Math.random() * 1000),
+                       cloud_id: r.id, pattern: r.pattern, category: r.category });
+          changed = true;
+        }
+      }
+      const lastPull = DB.lastPull("rules");
+      for (let i = local.length - 1; i >= 0; i--) {
+        const l = local[i];
+        if (l.cloud_id && !seen.has(l.cloud_id) && lastPull) {
+          local.splice(i, 1);
+          changed = true;
+        }
+      }
+      if (changed) DB._write("exp_user_rules", local);
+      DB.setLastPull("rules", new Date().toISOString());
+    });
+  },
+
+  _pullMemory() {
+    return Cloud.fetchAll("merchant_memory").then((rows) => {
+      const lastPull = DB.lastPull("memory");
+      const mem = DB.getMerchantMemory();
+      let changed = false;
+      for (const r of rows) {
+        const key = String(r.merchant || "").toLowerCase().trim();
+        if (key && (!lastPull || (r.updated_at || "") > lastPull) && mem[key] !== r.category) {
+          mem[key] = r.category;
+          changed = true;
+        }
+      }
+      if (changed) DB._write("exp_merchant_memory", mem);
+      DB.setLastPull("memory", new Date().toISOString());
+    });
+  },
+
+  _pullBudgets() {
+    return Cloud.fetchAll("budgets").then((rows) => {
+      const lastPull = DB.lastPull("budgets");
+      const all = DB._read("exp_budgets", {});
+      let changed = false;
+      for (const r of rows) {
+        if (!lastPull || (r.updated_at || "") > lastPull) {
+          all[r.month] = all[r.month] || {};
+          if (all[r.month][r.category] !== parseFloat(r.amount)) {
+            all[r.month][r.category] = parseFloat(r.amount);
+            changed = true;
+          }
+        }
+      }
+      if (changed) DB._write("exp_budgets", all);
+      DB.setLastPull("budgets", new Date().toISOString());
+    });
+  },
+
+  _pullSettings() {
+    return Cloud.fetchAll("app_settings").then((rows) => {
+      const lastPull = DB.lastPull("settings");
+      const r = rows[0];
+      if (r && (!lastPull || (r.updated_at || "") > lastPull)) {
+        const cur = DB.getSettings();
+        const next = Object.assign({}, cur, {
+          display_currency: r.display_currency || cur.display_currency,
+          cny_to_hkd: r.cny_hkd_rate != null ? parseFloat(r.cny_hkd_rate) : cur.cny_to_hkd,
+        });
+        DB._write("exp_settings", next);
+      }
+      DB.setLastPull("settings", new Date().toISOString());
+    });
+  },
+
+  /* Delete all cloud rows for this user (used by "Delete all data"). */
+  async wipeCloud() {
+    const uid = Cloud.user().id;
+    for (const t of ["expenses", "merchant_memory", "user_rules", "budgets", "app_settings"]) {
+      await Cloud.removeWhere(t, { user_id: uid });
+    }
+  },
+};
+
+</script>
+<script>
+/* Expense Tracker v2 — static UI.
+   Builds on the v1 foundation (tabs, filters, dialogs, import parsing)
+   adding: auto-categorization, import review, visual dashboard, budgets,
+   multi-currency, edit + review inbox, settings/backup. */
+"use strict";
+
+/* ---- Helpers -------------------------------------------------------------- */
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function fmt(n) { return (n || 0).toFixed(2); }
+function money(n) { return DB.displaySymbol() + fmt(n); }
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function curMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+/* ---- Tabs ------------------------------------------------------------------ */
+function switchTab(name) {
+  document.querySelectorAll("[data-tab]").forEach((b) =>
+    b.classList.toggle("active", b.dataset.tab === name));
+  document.querySelectorAll(".view").forEach((v) =>
+    v.classList.toggle("active", v.id === "view-" + name));
+}
+document.querySelectorAll("[data-tab]").forEach((btn) => {
+  btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+});
+
+/* ---- Dashboard -------------------------------------------------------------- */
+function donutSVG(segs) {
+  const R = 54, C = 2 * Math.PI * R;
+  const total = segs.reduce((s, x) => s + x.total, 0);
+  if (!total) {
+    return `<circle cx="70" cy="70" r="${R}" fill="none" stroke="#e6e1d5" stroke-width="22"/>`;
+  }
+  let off = 0;
+  return segs.map((s) => {
+    const len = Math.max((s.total / total) * C, 0.5);
+    const el =
+      `<circle cx="70" cy="70" r="${R}" fill="none" stroke="${s.color}" ` +
+      `stroke-width="22" stroke-dasharray="${len.toFixed(1)} ${C.toFixed(1)}" ` +
+      `stroke-dashoffset="${(-off).toFixed(1)}" transform="rotate(-90 70 70)"/>`;
+    off += len;
+    return el;
+  }).join("");
+}
+
+function renderDashboard() {
+  const month = document.getElementById("dash-month").value || null;
+  const effMonth = month || curMonth();
+  const total = DB.grandTotal(month);
+  const sym = DB.displaySymbol();
+
+  document.getElementById("dash-total").textContent = sym + fmt(total.total);
+  document.getElementById("dash-count").textContent = total.count;
+  document.getElementById("dash-month-label").textContent =
+    month ? `in ${month}` : "all time";
+
+  // Delta vs previous month (only when a month is selected)
+  const deltaEl = document.getElementById("dash-delta");
+  if (month) {
+    const ms = DB.monthlyTotals(24);
+    const i = ms.findIndex((m) => m.month === month);
+    const prev = i >= 0 && i + 1 < ms.length ? ms[i + 1].total : null;
+    if (prev != null && prev > 0) {
+      const pct = ((total.total - prev) / prev) * 100;
+      const up = pct > 0.5, down = pct < -0.5;
+      deltaEl.textContent =
+        (up ? "▲ +" : down ? "▼ " : "– ") + Math.abs(pct).toFixed(0) + "% vs last month";
+      deltaEl.className = "delta " + (up ? "up" : down ? "down" : "");
+    } else {
+      deltaEl.textContent = "first month with data";
+      deltaEl.className = "delta";
+    }
+  } else {
+    deltaEl.textContent = "";
+    deltaEl.className = "delta";
+  }
+
+  const cats = DB.byCategory(month);
+  const top = cats[0];
+  document.getElementById("dash-topcat").textContent =
+    top ? `${catMeta(top.category).icon} ${top.category}` : "—";
+
+  // Donut
+  const segs = cats.slice(0, 8).map((r) => ({
+    ...r, color: catMeta(r.category).color,
+  }));
+  document.getElementById("donut").innerHTML = donutSVG(segs);
+  document.getElementById("donut-total").textContent = sym + fmt(total.total);
+  document.getElementById("donut-ccy").textContent = DB.getSettings().display_currency;
+
+  document.getElementById("cat-legend").innerHTML = segs.map((r) => {
+    const m = catMeta(r.category);
+    const pct = total.total ? ((r.total / total.total) * 100).toFixed(0) : 0;
+    return `<div class="legend-row"><span class="dot" style="background:${m.color}"></span>` +
+      `${m.icon} ${esc(r.category)} <span class="muted">${pct}%</span></div>`;
+  }).join("") || `<div class="muted">No data yet.</div>`;
+
+  // Last-30-days bars
+  const days = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  const daySet = new Set(days);
+  const perDay = {};
+  for (const e of DB.list({ limit: 100000 })) {
+    const day = (e.expense_date || "").slice(0, 10);
+    if (daySet.has(day)) perDay[day] = (perDay[day] || 0) + DB.toDisplay(e.amount, e.currency);
+  }
+  const max = Math.max(1, ...days.map((d) => perDay[d] || 0));
+  document.getElementById("bars").innerHTML = days.map((d) => {
+    const v = perDay[d] || 0;
+    const h = Math.max(v > 0 ? 4 : 0, (v / max) * 110);
+    const peak = v > 0 && v === max ? " peak" : "";
+    return `<div class="bar${peak}" style="height:${h.toFixed(0)}px" title="${d}: ${sym}${fmt(v)}"></div>`;
+  }).join("");
+
+  // Category rows (clickable -> filtered expenses)
+  const maxCat = Math.max(1, ...cats.map((r) => r.total));
+  document.getElementById("cat-rows").innerHTML = cats.map((r) => {
+    const m = catMeta(r.category);
+    return `<div class="cat-row" data-cat="${esc(r.category)}">
+      <span class="cat-ico" style="--cat:${m.color}">${m.icon}</span>
+      <span class="cat-name">${esc(r.category)} <span class="muted">${m.zh}</span></span>
+      <div class="cat-bar"><i style="width:${((r.total / maxCat) * 100).toFixed(0)}%;background:${m.color}"></i></div>
+      <span class="amount"><strong>${sym}${fmt(r.total)}</strong></span>
+      <span class="muted">${r.n}</span>
+    </div>`;
+  }).join("") || `<div class="muted">No data yet — import a bill or add an expense.</div>`;
+
+  document.querySelectorAll(".cat-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      document.getElementById("f-category").value = row.dataset.cat;
+      filters.category = row.dataset.cat;
+      setChip("all");
+      switchTab("expenses");
+      renderExpenses();
+    });
+  });
+
+  // Review banner
+  const n = DB.needsReview().length;
+  const banner = document.getElementById("review-banner");
+  banner.style.display = n ? "flex" : "none";
+  if (n) {
+    document.getElementById("review-banner-text").textContent =
+      `${n} transaction${n > 1 ? "s" : ""} need${n > 1 ? "" : "s"} a category — teach the app once, it remembers.`;
+  }
+}
+document.getElementById("review-banner-go").addEventListener("click", () => {
+  setChip("review");
+  switchTab("expenses");
+  renderExpenses();
+});
+
+function refreshMonthOptions() {
+  for (const id of ["dash-month", "budget-month"]) {
+    const sel = document.getElementById(id);
+    if (!sel) continue;
+    const cur = sel.value || curMonth();
+    sel.innerHTML = (id === "dash-month" ? `<option value="">All time</option>` : "") +
+      DB.months().map((m) => `<option value="${m}">${m}</option>`).join("");
+    sel.value = [...sel.options].some((o) => o.value === cur) ? cur : (sel.options[0] ? sel.options[0].value : "");
+  }
+}
+document.getElementById("dash-month").addEventListener("change", renderDashboard);
+document.getElementById("budget-month").addEventListener("change", renderBudgets);
+
+/* ---- Expenses list ----------------------------------------------------------- */
+const filters = { q: "", platform: "", category: "", month: "" };
+let chip = "all";
+
+function setChip(name) {
+  chip = name;
+  document.querySelectorAll("#expense-chips .chip").forEach((c) =>
+    c.classList.toggle("active", c.dataset.chip === name));
+  document.getElementById("bulk-bar").style.display = name === "review" ? "flex" : "none";
+  document.querySelectorAll(".bulk-col").forEach((th) => {
+    th.style.display = name === "review" ? "" : "none";
+  });
+}
+document.querySelectorAll("#expense-chips .chip").forEach((c) => {
+  c.addEventListener("click", () => { setChip(c.dataset.chip); renderExpenses(); });
+});
+
+function catPill(category) {
+  const m = catMeta(category);
+  return `<span class="cat-pill" style="--cat:${m.color}">${m.icon} ${esc(category)}</span>`;
+}
+
+function renderExpenses() {
+  const n = DB.needsReview().length;
+  document.getElementById("chip-review-n").textContent = n ? `(${n})` : "";
+
+  let list;
+  if (chip === "review") {
+    list = DB.needsReview().filter((e) => {
+      if (filters.q) {
+        const q = filters.q.toLowerCase();
+        const hay = ((e.merchant || "") + " " + (e.description || "")).toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      if (filters.platform && e.platform !== filters.platform) return false;
+      if (filters.month && !(e.expense_date || "").startsWith(filters.month)) return false;
+      return true;
+    });
+  } else {
+    list = DB.list({
+      platform: filters.platform || null,
+      category: filters.category || null,
+      month: filters.month || null,
+      search: filters.q || null,
+    });
+  }
+
+  const sym = DB.displaySymbol();
+  const dispCcy = DB.getSettings().display_currency;
+  document.getElementById("expense-rows").innerHTML = list.length
+    ? list.map((e) => {
+      const shown = DB.toDisplay(e.amount, e.currency);
+      const orig = String(e.currency || "CNY").toUpperCase() !== dispCcy.toUpperCase()
+        ? ` <span class="muted">(${esc(e.currency)} ${fmt(e.amount)})</span>` : "";
+      return `<tr${e.cat_source === "unreviewed" ? ' class="needs-review"' : ""}>
+        ${chip === "review" ? `<td class="bulk-col"><input type="checkbox" data-bulk="${e.id}"></td>` : ""}
+        <td>${esc(e.expense_date)}</td>
+        <td><strong>${esc(e.merchant || "—")}</strong>
+          ${e.description ? `<div class="muted">${esc(e.description)}</div>` : ""}</td>
+        <td>${catPill(e.category)}</td>
+        <td>${esc(PLATFORM_LABELS[e.platform] || e.platform)}</td>
+        <td class="amount">${sym}${fmt(shown)}${orig}</td>
+        <td class="row-actions">
+          <button data-edit="${e.id}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.2L16.6 4.2a2.1 2.1 0 0 1 3 3L8 18.8 4 20z"/><path d="M14.8 6l3.2 3.2"/></svg></button>
+          <button data-del="${e.id}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
+        </td>
+      </tr>`;
+    }).join("")
+    : `<tr><td colspan="7" class="muted">${chip === "review"
+      ? "Inbox zero — everything has a category."
+      : "No expenses yet."}</td></tr>`;
+
+  document.querySelectorAll("[data-del]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (confirm("Delete this expense?")) {
+        DB.remove(btn.dataset.del);
+        renderAll();
+      }
+    });
+  });
+  document.querySelectorAll("[data-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => openExpenseDialog(btn.dataset.edit));
+  });
+
+  const bulkAll = document.getElementById("bulk-all");
+  if (bulkAll) {
+    bulkAll.checked = false;
+    bulkAll.addEventListener("change", () => {
+      document.querySelectorAll("[data-bulk]").forEach((cb) => { cb.checked = bulkAll.checked; });
+      updateBulkCount();
+    });
+  }
+  document.querySelectorAll("[data-bulk]").forEach((cb) => {
+    cb.addEventListener("change", updateBulkCount);
+  });
+  updateBulkCount();
+}
+
+function updateBulkCount() {
+  const n = document.querySelectorAll("[data-bulk]:checked").length;
+  document.getElementById("bulk-count").textContent =
+    `${n} selected`;
+}
+document.getElementById("bulk-apply").addEventListener("click", () => {
+  const ids = [...document.querySelectorAll("[data-bulk]:checked")].map((cb) => cb.dataset.bulk);
+  const cat = document.getElementById("bulk-cat").value;
+  if (!ids.length || !cat) return;
+  const done = DB.bulkSetCategory(ids, cat);
+  toast(`${done} categorized — I'll remember these merchants`);
+  renderAll();
+});
+
+document.getElementById("f-apply").addEventListener("click", () => {
+  filters.q = document.getElementById("f-q").value.trim();
+  filters.platform = document.getElementById("f-platform").value;
+  filters.category = document.getElementById("f-category").value;
+  filters.month = document.getElementById("f-month").value;
+  renderExpenses();
+});
+
+/* ---- Expense dialog (add + edit) ---------------------------------------------- */
+let editingId = null;
+const dlg = document.getElementById("dlg-expense");
+
+function catOptions(selected) {
+  return CATEGORY_IDS.map((c) =>
+    `<option value="${esc(c)}"${c === selected ? " selected" : ""}>${catLabel(c)}</option>`
+  ).join("");
+}
+
+function openExpenseDialog(id) {
+  editingId = id || null;
+  const form = document.getElementById("frm-expense");
+  form.reset();
+  document.getElementById("dlg-expense-title").textContent =
+    editingId ? "Edit expense" : "New expense";
+  document.getElementById("f-cat").innerHTML = catOptions("Other");
+  document.getElementById("f-currency").value = DB.getSettings().display_currency;
+  document.getElementById("f-date").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("cat-hint").style.display = "none";
+  if (editingId) {
+    const e = DB.list({ limit: 100000 }).find((x) => String(x.id) === String(id));
+    if (!e) return;
+    document.getElementById("f-amount").value = e.amount;
+    document.getElementById("f-currency").value = e.currency || "CNY";
+    document.getElementById("f-date").value = e.expense_date || "";
+    document.getElementById("f-cat").value = e.category || "Other";
+    document.getElementById("f-plat").value = e.platform || "other";
+    document.getElementById("f-merchant").value = e.merchant || "";
+    form.elements.description.value = e.description || "";
+  }
+  dlg.showModal();
+}
+
+document.getElementById("btn-new-expense").addEventListener("click", () => openExpenseDialog(null));
+document.getElementById("fab").addEventListener("click", () => openExpenseDialog(null));
+document.getElementById("btn-cancel-expense").addEventListener("click", () => dlg.close());
+
+/* Suggest a category as the merchant is typed — learned memory first. */
+document.getElementById("f-merchant").addEventListener("blur", () => {
+  if (editingId) return;
+  const m = document.getElementById("f-merchant").value.trim();
+  if (!m) return;
+  const p = Categorizer.propose(m, "");
+  const hint = document.getElementById("cat-hint");
+  if (p.category) {
+    document.getElementById("f-cat").value = p.category;
+    hint.textContent = p.via === "memory"
+      ? `Suggested from “${m}” — change it if I'm wrong, I'll remember.`
+      : `Suggested: ${catLabel(p.category)}`;
+    hint.style.display = "block";
+  } else {
+    hint.style.display = "none";
+  }
+});
+
+document.getElementById("frm-expense").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const data = {};
+  new FormData(e.target).forEach((v, k) => { data[k] = v === "" ? null : v; });
+  if (editingId) {
+    DB.update(editingId, data);
+    if (data.merchant && data.category) Categorizer.learn(data.merchant, data.category);
+  } else {
+    data.cat_source = "manual";
+    DB.create(data);
+    if (data.merchant && data.category && data.category !== "Other") {
+      Categorizer.learn(data.merchant, data.category);
+    }
+  }
+  editingId = null;
+  dlg.close();
+  renderAll();
+  toast("Saved");
+});
+
+/* ---- Import: parse -> review -> commit ----------------------------------------- */
+let reviewBatch = null;
+
+document.getElementById("btn-import").addEventListener("click", async () => {
+  const file = document.getElementById("f-file").files[0];
+  const out = document.getElementById("import-result");
+  if (!file) { out.textContent = "Choose a file first."; return; }
+  out.textContent = "Parsing…";
+  try {
+    const { platform, expenses } = await Importers.parseFile(file);
+    if (!platform) {
+      out.textContent = "Could not detect WeChat or Alipay format in this file.";
+      return;
+    }
+    const existing = new Set(
+      DB.list({ limit: 100000 }).map((x) => x.external_id).filter(Boolean)
+    );
+    const seen = new Set();
+    reviewBatch = {
+      platform,
+      rows: expenses.map((exp) => {
+        const p = Categorizer.propose(exp.merchant, exp.description);
+        const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id)));
+        if (exp.external_id) seen.add(exp.external_id);
+        return { ...exp, proposed: p.category, via: p.via,
+                 initial: p.category || "Other", checked: !dupe, dupe: !!dupe };
+      }),
+    };
+    out.textContent = "";
+    renderReview();
+    document.getElementById("review-card").style.display = "block";
+    document.getElementById("review-card").scrollIntoView({ behavior: "smooth" });
+  } catch (err) {
+    out.textContent = "Import failed: " + err.message;
+  }
+});
+
+function renderReview() {
+  if (!reviewBatch) return;
+  const rows = reviewBatch.rows;
+  const dupes = rows.filter((r) => r.dupe).length;
+  const auto = rows.filter((r) => !r.dupe && r.proposed).length;
+  const needEye = rows.filter((r) => !r.dupe && !r.proposed).length;
+  const platLabel = reviewBatch.platform === "wechat" ? "WeChat Pay" : "Alipay";
+  document.getElementById("review-summary").textContent =
+    `${platLabel} · ${rows.length} rows · ${dupes} duplicate${dupes === 1 ? "" : "s"} skipped · ` +
+    `${auto} auto-categorized · ${needEye} need${needEye === 1 ? "s" : ""} your eye`;
+
+  document.getElementById("review-rows").innerHTML = rows.map((r, i) => `
+    <tr class="${r.dupe ? "dupe" : ""}${!r.dupe && !r.proposed ? "needs-review" : ""}">
+      <td><input type="checkbox" data-review="${i}"${r.checked ? " checked" : ""}${r.dupe ? " disabled" : ""}></td>
+      <td>${esc(r.expense_date)}</td>
+      <td><strong>${esc(r.merchant || "—")}</strong>
+        ${r.description && r.description !== r.merchant ? `<div class="muted">${esc(r.description)}</div>` : ""}</td>
+      <td class="amount">${fmt(r.amount)}</td>
+      <td><select data-review-cat="${i}">
+        ${CATEGORY_IDS.map((c) =>
+          `<option value="${esc(c)}"${(r.proposed || "Other") === c ? " selected" : ""}>${catLabel(c)}</option>`
+        ).join("")}
+      </select>
+      ${!r.dupe && !r.proposed ? `<div class="muted">needs review</div>` : ""}</td>
+      <td>${r.dupe ? `<span class="muted">duplicate</span>` : ""}</td>
+    </tr>`).join("");
+
+  document.getElementById("review-all").checked =
+    rows.filter((r) => !r.dupe).every((r) => r.checked);
+  document.querySelectorAll("[data-review]").forEach((cb) => {
+    cb.addEventListener("change", () => {
+      reviewBatch.rows[+cb.dataset.review].checked = cb.checked;
+    });
+  });
+}
+
+document.getElementById("review-all").addEventListener("change", (e) => {
+  reviewBatch.rows.forEach((r, i) => {
+    if (!r.dupe) {
+      r.checked = e.target.checked;
+      const cb = document.querySelector(`[data-review="${i}"]`);
+      if (cb) cb.checked = r.checked;
+    }
+  });
+});
+
+document.getElementById("btn-review-cancel").addEventListener("click", () => {
+  reviewBatch = null;
+  document.getElementById("review-card").style.display = "none";
+  document.getElementById("f-file").value = "";
+});
+
+document.getElementById("btn-review-confirm").addEventListener("click", () => {
+  if (!reviewBatch) return;
+  let added = 0;
+  reviewBatch.rows.forEach((r, i) => {
+    if (!r.checked || r.dupe) return;
+    const sel = document.querySelector(`[data-review-cat="${i}"]`);
+    const chosen = sel ? sel.value : r.initial;
+    let cat_source;
+    if (chosen !== r.initial) {
+      // User overrode the proposal (or picked a category for an unknown row)
+      cat_source = "manual";
+      if (r.merchant && chosen !== "Other") Categorizer.learn(r.merchant, chosen);
+    } else if (r.proposed) {
+      cat_source = r.via;
+    } else {
+      // Left untouched and the engine had no proposal -> review inbox
+      cat_source = "unreviewed";
+    }
+    if (DB.create({ ...r, category: chosen, cat_source })) added++;
+  });
+  const eye = DB.needsReview().length;
+  reviewBatch = null;
+  document.getElementById("review-card").style.display = "none";
+  document.getElementById("f-file").value = "";
+  renderAll();
+  toast(`Imported ${added}${eye ? ` · ${eye} need review` : ""}`);
+});
+
+/* ---- Budgets -------------------------------------------------------------------- */
+function renderBudgets() {
+  const sel = document.getElementById("budget-month");
+  const month = (sel && sel.value) || curMonth();
+  const spent = {};
+  for (const r of DB.byCategory(month)) spent[r.category] = r.total;
+  const budgets = DB.getBudgets(month);
+  const sym = DB.displaySymbol();
+
+  let totSpent = 0, totBudget = 0;
+  const rows = CATEGORY_IDS.filter((c) => c !== "Other").map((c) => {
+    const m = catMeta(c);
+    const s = spent[c] || 0;
+    const b = budgets[c] || 0;
+    totSpent += s; totBudget += b;
+    const pct = b > 0 ? Math.min((s / b) * 100, 100) : 0;
+    const over = b > 0 && s > b;
+    return `<div class="budget-row${over ? " over" : ""}">
+      <span class="cat-ico" style="--cat:${m.color}">${m.icon}</span>
+      <div class="budget-main">
+        <div class="budget-top">
+          <span><strong>${esc(c)}</strong> <span class="muted">${m.zh}</span></span>
+          <span class="amount">${sym}${fmt(s)}${b > 0 ? ` <span class="muted">/ ${sym}${fmt(b)}</span>` : ""}</span>
+        </div>
+        <div class="progress"><i style="width:${pct.toFixed(0)}%;background:${over ? "#dc2626" : m.color}"></i></div>
+        ${over ? `<div class="over-warn">Over budget by ${sym}${fmt(s - b)}</div>` : ""}
+      </div>
+      <input type="number" min="0" step="1" class="budget-input" data-budget="${esc(c)}"
+        placeholder="Set budget" value="${b > 0 ? b : ""}">
+    </div>`;
+  }).join("");
+
+  document.getElementById("budget-rows").innerHTML =
+    `<div class="card budget-summary">
+       <span>Spent <strong>${sym}${fmt(totSpent)}</strong></span>
+       <span class="muted">of</span>
+       <span>Budget <strong>${sym}${fmt(totBudget)}</strong></span>
+     </div>` + rows;
+
+  document.querySelectorAll("[data-budget]").forEach((inp) => {
+    inp.addEventListener("change", () => {
+      DB.setBudget(month, inp.dataset.budget, inp.value);
+      renderBudgets();
+    });
+  });
+}
+
+/* ---- Settings -------------------------------------------------------------------- */
+document.getElementById("btn-settings").addEventListener("click", () => {
+  openSettings();
+});
+document.getElementById("acct-chip").addEventListener("click", () => {
+  openSettings();
+  const s = document.getElementById("backend-status");
+  if (s) s.scrollIntoView({ block: "center" });
+});
+function openSettings() {
+  const s = DB.getSettings();
+  document.getElementById("set-ccy").value = s.display_currency;
+  document.getElementById("set-rate").value = s.cny_to_hkd;
+  document.getElementById("dlg-settings").showModal();
+}
+document.getElementById("set-ccy").addEventListener("change", (e) => {
+  DB.saveSettings({ display_currency: e.target.value });
+  renderAll();
+});
+document.getElementById("set-rate").addEventListener("change", (e) => {
+  const v = parseFloat(e.target.value);
+  if (v > 0) {
+    DB.saveSettings({ cny_to_hkd: v });
+    renderAll();
+  }
+});
+document.getElementById("btn-export-json").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(DB.exportAll(), null, 2)],
+    { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `expense-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("Backup downloaded");
+});
+document.getElementById("f-restore").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      DB.importAll(JSON.parse(rd.result));
+      renderAll();
+      toast("Backup restored");
+    } catch (err) {
+      alert("Restore failed: " + err.message);
+    }
+  };
+  rd.readAsText(f);
+  e.target.value = "";
+});
+document.getElementById("btn-wipe").addEventListener("click", async () => {
+  const cloudNote = Cloud.signedIn() ? " (including the synced cloud copy)" : "";
+  if (!confirm("Delete ALL expenses, budgets, memory and settings" + cloudNote +
+               "? This cannot be undone.")) return;
+  if (Cloud.signedIn()) {
+    try { await Sync.wipeCloud(); } catch (e) { toast("Cloud delete failed: " + e.message); return; }
+  }
+  for (const k of ["exp_expenses", "exp_merchant_memory", "exp_user_rules",
+                   "exp_budgets", "exp_settings", "exp_seq", "exp_migrated_v2",
+                   "exp_sync_queue", "exp_last_pull", "exp_sync_reseed"]) {
+    storage.removeItem(k);
+  }
+  renderAll();
+  toast("All data deleted");
+});
+
+/* ---- Selects ----------------------------------------------------------------------- */
+function fillSelects() {
+  document.getElementById("f-plat").innerHTML =
+    PLATFORMS.map(([p, l]) => `<option value="${p}">${esc(l)}</option>`).join("");
+  document.getElementById("f-platform").innerHTML =
+    `<option value="">All platforms</option>` +
+    PLATFORMS.map(([p, l]) => `<option value="${p}">${esc(l)}</option>`).join("");
+  document.getElementById("f-category").innerHTML =
+    `<option value="">All categories</option>` +
+    CATEGORY_IDS.map((c) => `<option value="${esc(c)}">${catLabel(c)}</option>`).join("");
+  document.getElementById("bulk-cat").innerHTML =
+    CATEGORY_IDS.filter((c) => c !== "Other").map((c) =>
+      `<option value="${esc(c)}">${catLabel(c)}</option>`).join("");
+}
+
+/* ---- Boot --------------------------------------------------------------------------- */
+function renderAll() {
+  DB.migrate();
+  refreshMonthOptions();
+  fillSelects();
+  renderDashboard();
+  renderExpenses();
+  renderBudgets();
+}
+
+/* ---- Backend: auth + sync -------------------------------------------------------- */
+function showApp() {
+  document.body.classList.remove("signed-out");
+  document.getElementById("view-auth").classList.remove("active");
+}
+
+function showAuthView() {
+  document.body.classList.add("signed-out");
+  document.getElementById("view-auth").classList.add("active");
+}
+
+/* Called by sb.js when the auth state changes. */
+function onCloudAuthChange(user, wasIn) {
+  if (user && !wasIn) {
+    showApp();
+    toast("Signed in — syncing…");
+    Sync.syncNow();
+  } else if (!user && wasIn) {
+    showAuthView();
+    toast("Signed out");
+  }
+  renderSyncStatus();
+}
+
+function renderSyncStatus() {
+  const pill = document.getElementById("backend-status");
+  const detail = document.getElementById("backend-detail");
+  const signout = document.getElementById("btn-signout");
+  if (!pill) return;
+  let label = "Local only", cls = "";
+  let det = "Backend not configured — data stays in this browser. " +
+            "Add your Supabase keys in config.js to sync across devices.";
+  let showSignout = false;
+  if (Cloud.configured()) {
+    if (!Cloud.ready()) {
+      label = "Library missing";
+      det = "The Supabase library failed to load — check your connection and reload.";
+    } else if (!Cloud.signedIn()) {
+      label = "Signed out";
+      det = "Sign in to sync your data across devices.";
+    } else {
+      showSignout = true;
+      const email = (Cloud.user() && Cloud.user().email) || "";
+      if (Sync.status === "syncing") {
+        label = "Syncing…";
+        det = "Connected as " + email + ".";
+      } else if (Sync.status === "error") {
+        label = "Sync error"; cls = "err";
+        det = "Connected as " + email + " — " + (Sync.lastError || "unknown error") + ".";
+      } else {
+        label = "Connected"; cls = "ok";
+        det = "Connected as " + email + " — changes sync automatically.";
+      }
+    }
+  }
+  pill.textContent = label;
+  pill.className = "status-pill " + cls;
+  detail.textContent = det;
+  signout.style.display = showSignout ? "" : "none";
+  const chip = document.getElementById("acct-chip");
+  if (chip) {
+    if (showSignout) {
+      const email = (Cloud.user() && Cloud.user().email) || "?";
+      chip.hidden = false;
+      chip.textContent = email.trim().charAt(0).toUpperCase() || "?";
+      chip.title = "Signed in as " + email + " — open settings";
+    } else {
+      chip.hidden = true;
+    }
+  }
+}
+
+function friendlyAuthError(e, mode) {
+  const m = (e && e.message) || "Something went wrong";
+  if (/invalid login credentials/i.test(m))
+    return mode === "signup"
+      ? "Couldn't create the account — please check the email and try again."
+      : "No account matches that email and password. New here? Tap “Create account” below.";
+  if (/already registered|already exists|duplicate/i.test(m))
+    return "This email already has an account — tap “Sign in” instead.";
+  if (/password.*(6|short|length)/i.test(m)) return "Password must be at least 6 characters.";
+  if (/email/i.test(m) && /confirm/i.test(m))
+    return "Please confirm your email first (check your inbox).";
+  return m;
+}
+
+async function handleAuth(mode) {
+  const email = document.getElementById("auth-email").value.trim();
+  const pw = document.getElementById("auth-password").value;
+  const err = document.getElementById("auth-error");
+  err.style.display = "none";
+  err.textContent = "";
+  if (!email || !pw) {
+    err.textContent = "Enter your email and password.";
+    err.style.display = "block";
+    return;
+  }
+  try {
+    if (mode === "signup") await Cloud.signUp(email, pw);
+    else await Cloud.signIn(email, pw);
+    // onCloudAuthChange fires from sb.js → shows the app + syncs.
+  } catch (e) {
+    err.textContent = friendlyAuthError(e, mode);
+    err.style.display = "block";
+  }
+}
+
+document.getElementById("btn-signin").addEventListener("click", () => handleAuth("signin"));
+document.getElementById("btn-signup").addEventListener("click", () => handleAuth("signup"));
+document.getElementById("btn-signout").addEventListener("click", async () => {
+  await Cloud.signOut();
+});
+document.getElementById("btn-sync-now").addEventListener("click", () => {
+  if (!Cloud.signedIn()) {
+    toast(Cloud.configured() ? "Sign in first" : "Backend not configured");
+    return;
+  }
+  Sync.syncNow();
+  toast("Syncing…");
+});
+
+function registerServiceWorker() {
+  if ("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+}
+
+async function boot() {
+  fillSelects();
+  document.getElementById("dash-month").value = curMonth();
+  if (![...document.getElementById("dash-month").options].some((o) => o.value === curMonth())) {
+    document.getElementById("dash-month").value = "";
+  }
+  renderAll();
+  const backend = await Cloud.init();
+  renderSyncStatus();
+  if (backend && !Cloud.signedIn()) {
+    showAuthView();
+  } else {
+    showApp();
+    if (backend) Sync.syncNow();
+  }
+  registerServiceWorker();
+}
+boot();
+
+</script>
+</body>
+</html>
