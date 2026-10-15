@@ -136,6 +136,24 @@ const DB = {
     return true;
   },
 
+  /* ---- Import batch history -------------------------------------------
+     Local-only records of completed bill imports. Each batch remembers the
+     expense ids it created so a mistaken import can be undone. */
+  importBatches() {
+    return this._read("exp_import_batches", []);
+  },
+  recordImportBatch(batch) {
+    const list = this.importBatches();
+    list.unshift(batch);
+    this._write("exp_import_batches", list.slice(0, 20));
+  },
+  removeImportBatch(id) {
+    this._write(
+      "exp_import_batches",
+      this.importBatches().filter((b) => String(b.id) !== String(id))
+    );
+  },
+
   _inMonth(list, month) {
     return month ? list.filter((e) => (e.expense_date || "").startsWith(month)) : list;
   },
