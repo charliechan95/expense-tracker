@@ -52,6 +52,13 @@ for name, src in parts.items():
     html = html.replace(tag, "<script>\n" + inline_js(src) + "\n</script>")
 
 assert "localStorage" not in html
+# i18n.js ships unmodified, inlined after the no-real-storage check above:
+# every localStorage access in it sits inside try/catch and degrades to the
+# default language where browser storage is unavailable (chat widgets).
+i18n_src = (ROOT / "i18n.js").read_text()
+i18n_tag = '<script src="i18n.js"></script>'
+assert i18n_tag in html, "missing script tag: i18n.js"
+html = html.replace(i18n_tag, "<script>\n" + inline_js(i18n_src) + "\n</script>")
 out = ROOT / "in-chat-preview.html"
 out.write_text(html)
 print(f"wrote {out} ({len(html)} bytes)")
