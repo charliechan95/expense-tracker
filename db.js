@@ -349,7 +349,9 @@ const DB = {
 
   importAll(data) {
     if (!data || data.app !== "expense-tracker" || !Array.isArray(data.expenses)) {
-      throw new Error("Not a valid expense-tracker backup file.");
+      const err = new Error("Not a valid expense-tracker backup file.");
+      err.code = "invalid_backup";
+      throw err;
     }
     this._write("exp_expenses", data.expenses);
     this._write("exp_merchant_memory", data.merchant_memory || {});
