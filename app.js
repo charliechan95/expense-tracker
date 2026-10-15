@@ -93,7 +93,7 @@ function renderDashboard() {
   const cats = DB.byCategory(month);
   const top = cats[0];
   document.getElementById("dash-topcat").textContent =
-    top ? `${catMeta(top.category).icon} ${top.category}` : "—";
+    top ? top.category : "—";
 
   // Donut
   const segs = cats.slice(0, 8).map((r) => ({
@@ -107,7 +107,7 @@ function renderDashboard() {
     const m = catMeta(r.category);
     const pct = total.total ? ((r.total / total.total) * 100).toFixed(0) : 0;
     return `<div class="legend-row"><span class="dot" style="background:${m.color}"></span>` +
-      `${m.icon} ${esc(r.category)} <span class="muted">${pct}%</span></div>`;
+      `<span class="legend-ico" style="--cat:${m.color}">${m.icon}</span> ${esc(r.category)} <span class="muted">${pct}%</span></div>`;
   }).join("") || `<div class="muted">${t("lbl_no_data")}</div>`;
 
   // Last-30-days bars
