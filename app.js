@@ -12,6 +12,8 @@ function esc(s) {
 }
 function fmt(n) { return (n || 0).toFixed(2); }
 function money(n) { return DB.displaySymbol() + fmt(n); }
+/* Symbol for a per-record currency code (imports are always CNY). */
+function ccySym(code) { return String(code || "").toUpperCase() === "CNY" ? "¥" : "HK$"; }
 
 let toastTimer;
 function toast(msg) {
@@ -378,8 +380,30 @@ document.getElementById("frm-expense").addEventListener("submit", (e) => {
 /* ---- Import: parse -> review -> commit ----------------------------------------- */
 let reviewBatch = null;
 
-document.getElementById("btn-import").addEventListener("click", async () => {
-  const file = document.getElementById("f-file").files[0];
+/* Shared review builder: takes parsed {platform, expenses} from the file
+   path or the paste path and stages the pre-commit preview. */
+function startReview(platform, expenses) {
+  const existing = new Set(
+    DB.list({ limit: 100000 }).map((x) => x.external_id).filter(Boolean)
+  );
+  const seen = new Set();
+  reviewBatch = {
+    platform,
+    rows: expenses.map((exp) => {
+      const p = Categorizer.propose(exp.merchant, exp.description);
+      const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id)));
+      if (exp.external_id) seen.add(exp.external_id);
+      return { ...exp, proposed: p.category, via: p.via,
+               initial: p.category || "Other", checked: !dupe, dupe: !!dupe };
+    }),
+  };
+  renderReview();
+  document.getElementById("review-card").style.display = "block";
+  document.getElementById("review-card").scrollIntoView({ behavior: "smooth" });
+}
+
+async function parseSelectedFile(fileOverride) {
+  const file = fileOverride || document.getElementById("f-file").files[0];
   const out = document.getElementById("import-result");
   if (!file) { out.textContent = t("imp_choose_first"); return; }
   out.textContent = t("imp_parsing");
@@ -389,28 +413,34 @@ document.getElementById("btn-import").addEventListener("click", async () => {
       out.textContent = t("imp_no_detect");
       return;
     }
-    const existing = new Set(
-      DB.list({ limit: 100000 }).map((x) => x.external_id).filter(Boolean)
-    );
-    const seen = new Set();
-    reviewBatch = {
-      platform,
-      rows: expenses.map((exp) => {
-        const p = Categorizer.propose(exp.merchant, exp.description);
-        const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id)));
-        if (exp.external_id) seen.add(exp.external_id);
-        return { ...exp, proposed: p.category, via: p.via,
-                 initial: p.category || "Other", checked: !dupe, dupe: !!dupe };
-      }),
-    };
     out.textContent = "";
-    renderReview();
-    document.getElementById("review-card").style.display = "block";
-    document.getElementById("review-card").scrollIntoView({ behavior: "smooth" });
+    startReview(platform, expenses);
   } catch (err) {
     out.textContent = t("imp_failed") + (err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") : err.message);
   }
+}
+
+/* Note: wrapped so the click Event never lands in parseSelectedFile's fileOverride. */
+document.getElementById("btn-import").addEventListener("click", () => parseSelectedFile());
+/* Selecting a file parses it immediately — one less click. */
+document.getElementById("f-file").addEventListener("change", () => {
+  if (document.getElementById("f-file").files[0]) parseSelectedFile();
 });
+/* The per-platform "Choose bill file" doors funnel into the same input. */
+document.getElementById("btn-pick-wechat").addEventListener("click", () =>
+  document.getElementById("f-file").click());
+document.getElementById("btn-pick-alipay").addEventListener("click", () =>
+  document.getElementById("f-file").click());
+
+/* Sum of checked, non-duplicate rows in the staged review. */
+function updateReviewTotal() {
+  const el = document.getElementById("review-total");
+  if (!el || !reviewBatch) return;
+  const sum = reviewBatch.rows.reduce(
+    (s, r) => s + (r.checked && !r.dupe ? parseFloat(r.amount) || 0 : 0), 0);
+  const ccy = reviewBatch.rows.length ? reviewBatch.rows[0].currency : "CNY";
+  el.textContent = t("rev_total").replace("{a}", ccySym(ccy) + fmt(sum));
+}
 
 function renderReview() {
   if (!reviewBatch) return;
@@ -447,8 +477,10 @@ function renderReview() {
   document.querySelectorAll("[data-review]").forEach((cb) => {
     cb.addEventListener("change", () => {
       reviewBatch.rows[+cb.dataset.review].checked = cb.checked;
+      updateReviewTotal();
     });
   });
+  updateReviewTotal();
 }
 
 document.getElementById("review-all").addEventListener("change", (e) => {
@@ -459,6 +491,7 @@ document.getElementById("review-all").addEventListener("change", (e) => {
       if (cb) cb.checked = r.checked;
     }
   });
+  updateReviewTotal();
 });
 
 document.getElementById("btn-review-cancel").addEventListener("click", () => {
@@ -469,7 +502,9 @@ document.getElementById("btn-review-cancel").addEventListener("click", () => {
 
 document.getElementById("btn-review-confirm").addEventListener("click", () => {
   if (!reviewBatch) return;
-  let added = 0;
+  const ids = [];
+  let total = 0;
+  const dupes = reviewBatch.rows.filter((r) => r.dupe).length;
   reviewBatch.rows.forEach((r, i) => {
     if (!r.checked || r.dupe) return;
     const sel = document.querySelector(`[data-review-cat="${i}"]`);
@@ -485,16 +520,115 @@ document.getElementById("btn-review-confirm").addEventListener("click", () => {
       // Left untouched and the engine had no proposal -> review inbox
       cat_source = "unreviewed";
     }
-    if (DB.create({ ...r, category: chosen, cat_source })) added++;
+    const newId = DB.create({ ...r, category: chosen, cat_source });
+    if (newId) {
+      ids.push(newId);
+      total += parseFloat(r.amount) || 0;
+    }
   });
+  const added = ids.length;
+  if (added) {
+    DB.recordImportBatch({
+      id: "imp-" + Date.now().toString(36),
+      ts: new Date().toISOString(),
+      platform: reviewBatch.platform,
+      expenseIds: ids,
+      count: added,
+      total,
+      currency: "CNY",
+      dupes,
+    });
+  }
   const eye = DB.needsReview().length;
   reviewBatch = null;
   document.getElementById("review-card").style.display = "none";
   document.getElementById("f-file").value = "";
   renderAll();
+  renderImportHistory();
   toast(t("import_done").replace("{n}", String(added)) +
     (eye ? t("import_done_review").replace("{e}", String(eye)) : ""));
 });
+
+/* ---- Import history + undo ------------------------------------------------
+   The latest batches sit on the Import view so a wrong file can be reversed. */
+function renderImportHistory() {
+  const box = document.getElementById("import-history");
+  if (!box) return;
+  const batches = DB.importBatches();
+  if (!batches.length) {
+    box.innerHTML = `<p class="muted">${esc(t("hist_empty"))}</p>`;
+    return;
+  }
+  box.innerHTML = batches.map((b) => {
+    const when = new Date(b.ts).toLocaleString();
+    const row = t("hist_row")
+      .replace("{n}", String(b.count))
+      .replace("{a}", ccySym(b.currency) + fmt(b.total));
+    const dup = b.dupes ? ` <span class="muted">${esc(t("hist_dupes").replace("{d}", String(b.dupes)))}</span>` : "";
+    return `<div class="hist-row"><div class="grow"><strong>${esc(tPlat(b.platform))}</strong>` +
+      ` <span class="muted">${esc(when)}</span><br>${esc(row)}${dup}</div>` +
+      `<button data-batch-undo="${esc(b.id)}">${esc(t("btn_undo"))}</button></div>`;
+  }).join("");
+  box.querySelectorAll("[data-batch-undo]").forEach((btn) => {
+    btn.addEventListener("click", () => undoImportBatch(btn.dataset.batchUndo));
+  });
+}
+
+function undoImportBatch(id) {
+  const batch = DB.importBatches().find((b) => String(b.id) === String(id));
+  if (!batch) return;
+  if (!confirm(t("hist_undo_confirm").replace("{n}", String(batch.count)))) return;
+  let removed = 0;
+  (batch.expenseIds || []).forEach((eid) => { if (DB.remove(eid)) removed++; });
+  DB.removeImportBatch(id);
+  renderAll();
+  renderImportHistory();
+  toast(t("hist_undone").replace("{n}", String(removed)));
+}
+
+/* ---- Paste-text import (Hong Kong wallets) -------------------------------- */
+document.getElementById("btn-paste-parse").addEventListener("click", () => {
+  const ta = document.getElementById("paste-text");
+  const out = document.getElementById("paste-result");
+  const text = (ta.value || "").trim();
+  if (!text) { out.textContent = t("paste_empty"); return; }
+  out.textContent = t("imp_parsing");
+  try {
+    const { platform, expenses } = Importers.parseText(text);
+    if (!platform) { out.textContent = t("imp_no_detect"); return; }
+    if (!expenses.length) { out.textContent = t("paste_no_rows"); return; }
+    out.textContent = "";
+    startReview(platform, expenses);
+  } catch (err) {
+    out.textContent = t("imp_failed") + (err && err.message);
+  }
+});
+
+document.getElementById("btn-paste-quickadd").addEventListener("click", () =>
+  openExpenseDialog(null));
+
+/* Drag & drop onto the upload card feeds the same parse flow. */
+const uploadCard = document.getElementById("upload-card");
+if (uploadCard) {
+  ["dragover", "dragenter"].forEach((ev) =>
+    uploadCard.addEventListener(ev, (e) => {
+      e.preventDefault();
+      uploadCard.classList.add("drag");
+    }));
+  uploadCard.addEventListener("dragleave", () => uploadCard.classList.remove("drag"));
+  uploadCard.addEventListener("drop", (e) => {
+    e.preventDefault();
+    uploadCard.classList.remove("drag");
+    const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (!f) return;
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(f);
+      document.getElementById("f-file").files = dt;
+    } catch { /* older browsers: keep the input untouched */ }
+    parseSelectedFile(f);
+  });
+}
 
 /* ---- Budgets -------------------------------------------------------------------- */
 function renderBudgets() {
@@ -633,6 +767,7 @@ function renderAll() {
   renderDashboard();
   renderExpenses();
   renderBudgets();
+  renderImportHistory();
 }
 
 /* ---- Backend: auth + sync -------------------------------------------------------- */
@@ -763,6 +898,7 @@ function registerServiceWorker() {
 window.onLangChange = function () {
   renderSyncStatus();
   if (reviewBatch) renderReview();
+  renderImportHistory();
 };
 
 async function boot() {
