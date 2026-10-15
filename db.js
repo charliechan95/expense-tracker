@@ -8,8 +8,8 @@
 const _memStore = Object.create(null);
 const storage = (() => {
   try {
-    storage.setItem("__exp_probe__", "1");
-    storage.removeItem("__exp_probe__");
+    localStorage.setItem("__exp_probe__", "1");
+    localStorage.removeItem("__exp_probe__");
     return localStorage;
   } catch {
     return {
