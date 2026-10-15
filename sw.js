@@ -1,9 +1,9 @@
 /* Expense Tracker — service worker.
-   App shell cached for instant, offline-capable loads.
-   Navigations go network-first (so updates reach the user);
-   static assets are cache-first. Cross-origin (CDNs, Supabase)
-   always hits the network. */
-const CACHE = "expense-tracker-v2";
+   App shell cached for offline-capable loads.
+   Everything same-origin goes network-first (so updates always
+   reach the user); the cache is only an offline fallback.
+   Cross-origin (CDNs, Supabase) always hits the network. */
+const CACHE = "expense-tracker-v3";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./i18n.js", "./db.js", "./categorize.js", "./importers.js",
@@ -42,7 +42,16 @@ self.addEventListener("fetch", (e) => {
     );
     return;
   }
+  // Static assets: network-first too. Cache-first here previously pinned
+  // users to the first build they ever loaded — fixes deployed to the
+  // server never reached their screens.
   e.respondWith(
-    caches.match(e.request).then((hit) => hit || fetch(e.request))
+    fetch(e.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
