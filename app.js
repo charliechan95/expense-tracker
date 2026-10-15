@@ -65,7 +65,7 @@ function renderDashboard() {
   document.getElementById("dash-total").textContent = sym + fmt(total.total);
   document.getElementById("dash-count").textContent = total.count;
   document.getElementById("dash-month-label").textContent =
-    month ? `in ${month}` : "all time";
+    month ? t("dash_in_month").replace("{m}", month) : t("dash_all_time");
 
   // Delta vs previous month (only when a month is selected)
   const deltaEl = document.getElementById("dash-delta");
@@ -77,10 +77,10 @@ function renderDashboard() {
       const pct = ((total.total - prev) / prev) * 100;
       const up = pct > 0.5, down = pct < -0.5;
       deltaEl.textContent =
-        (up ? "▲ +" : down ? "▼ " : "– ") + Math.abs(pct).toFixed(0) + "% vs last month";
+        (up ? "▲ +" : down ? "▼ " : "– ") + t("dash_vs_last").replace("{p}", Math.abs(pct).toFixed(0));
       deltaEl.className = "delta " + (up ? "up" : down ? "down" : "");
     } else {
-      deltaEl.textContent = "first month with data";
+      deltaEl.textContent = t("dash_first_month");
       deltaEl.className = "delta";
     }
   } else {
@@ -106,7 +106,7 @@ function renderDashboard() {
     const pct = total.total ? ((r.total / total.total) * 100).toFixed(0) : 0;
     return `<div class="legend-row"><span class="dot" style="background:${m.color}"></span>` +
       `${m.icon} ${esc(r.category)} <span class="muted">${pct}%</span></div>`;
-  }).join("") || `<div class="muted">No data yet.</div>`;
+  }).join("") || `<div class="muted">${t("lbl_no_data")}</div>`;
 
   // Last-30-days bars
   const days = [];
@@ -141,7 +141,7 @@ function renderDashboard() {
       <span class="amount"><strong>${sym}${fmt(r.total)}</strong></span>
       <span class="muted">${r.n}</span>
     </div>`;
-  }).join("") || `<div class="muted">No data yet — import a bill or add an expense.</div>`;
+  }).join("") || `<div class="muted">${t("lbl_no_data_hint")}</div>`;
 
   document.querySelectorAll(".cat-row").forEach((row) => {
     row.addEventListener("click", () => {
@@ -159,7 +159,7 @@ function renderDashboard() {
   banner.style.display = n ? "flex" : "none";
   if (n) {
     document.getElementById("review-banner-text").textContent =
-      `${n} transaction${n > 1 ? "s" : ""} need${n > 1 ? "" : "s"} a category — teach the app once, it remembers.`;
+      (n > 1 ? t("review_banner_p") : t("review_banner_s")).replace("{n}", String(n));
   }
 }
 document.getElementById("review-banner-go").addEventListener("click", () => {
@@ -173,7 +173,7 @@ function refreshMonthOptions() {
     const sel = document.getElementById(id);
     if (!sel) continue;
     const cur = sel.value || curMonth();
-    sel.innerHTML = (id === "dash-month" ? `<option value="">All time</option>` : "") +
+    sel.innerHTML = (id === "dash-month" ? `<option value="">${t("opt_all_time")}</option>` : "") +
       DB.months().map((m) => `<option value="${m}">${m}</option>`).join("");
     sel.value = [...sel.options].some((o) => o.value === cur) ? cur : (sel.options[0] ? sel.options[0].value : "");
   }
@@ -241,21 +241,19 @@ function renderExpenses() {
         <td><strong>${esc(e.merchant || "—")}</strong>
           ${e.description ? `<div class="muted">${esc(e.description)}</div>` : ""}</td>
         <td>${catPill(e.category)}</td>
-        <td>${esc(PLATFORM_LABELS[e.platform] || e.platform)}</td>
+        <td>${esc(tPlat(e.platform) || e.platform)}</td>
         <td class="amount">${sym}${fmt(shown)}${orig}</td>
         <td class="row-actions">
-          <button data-edit="${e.id}" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.2L16.6 4.2a2.1 2.1 0 0 1 3 3L8 18.8 4 20z"/><path d="M14.8 6l3.2 3.2"/></svg></button>
-          <button data-del="${e.id}" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
+          <button data-edit="${e.id}" title="${t("tt_edit")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.2L16.6 4.2a2.1 2.1 0 0 1 3 3L8 18.8 4 20z"/><path d="M14.8 6l3.2 3.2"/></svg></button>
+          <button data-del="${e.id}" title="${t("tt_delete")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
         </td>
       </tr>`;
     }).join("")
-    : `<tr><td colspan="7" class="muted">${chip === "review"
-      ? "Inbox zero — everything has a category."
-      : "No expenses yet."}</td></tr>`;
+    : `<tr><td colspan="7" class="muted">${chip === "review" ? t("review_empty") : t("exp_empty")}</td></tr>`;
 
   document.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (confirm("Delete this expense?")) {
+      if (confirm(t("confirm_del"))) {
         DB.remove(btn.dataset.del);
         renderAll();
       }
@@ -282,14 +280,14 @@ function renderExpenses() {
 function updateBulkCount() {
   const n = document.querySelectorAll("[data-bulk]:checked").length;
   document.getElementById("bulk-count").textContent =
-    `${n} selected`;
+    t("bulk_selected").replace("{n}", String(n));
 }
 document.getElementById("bulk-apply").addEventListener("click", () => {
   const ids = [...document.querySelectorAll("[data-bulk]:checked")].map((cb) => cb.dataset.bulk);
   const cat = document.getElementById("bulk-cat").value;
   if (!ids.length || !cat) return;
   const done = DB.bulkSetCategory(ids, cat);
-  toast(`${done} categorized — I'll remember these merchants`);
+  toast(t("bulk_done").replace("{n}", String(done)));
   renderAll();
 });
 
@@ -316,7 +314,7 @@ function openExpenseDialog(id) {
   const form = document.getElementById("frm-expense");
   form.reset();
   document.getElementById("dlg-expense-title").textContent =
-    editingId ? "Edit expense" : "New expense";
+    editingId ? t("dlg_exp_edit") : t("dlg_exp_new");
   document.getElementById("f-cat").innerHTML = catOptions("Other");
   document.getElementById("f-currency").value = DB.getSettings().display_currency;
   document.getElementById("f-date").value = new Date().toISOString().slice(0, 10);
@@ -349,8 +347,8 @@ document.getElementById("f-merchant").addEventListener("blur", () => {
   if (p.category) {
     document.getElementById("f-cat").value = p.category;
     hint.textContent = p.via === "memory"
-      ? `Suggested from “${m}” — change it if I'm wrong, I'll remember.`
-      : `Suggested: ${catLabel(p.category)}`;
+      ? t("hint_memory").replace("{m}", m)
+      : t("hint_keyword").replace("{cat}", catLabel(p.category));
     hint.style.display = "block";
   } else {
     hint.style.display = "none";
@@ -374,7 +372,7 @@ document.getElementById("frm-expense").addEventListener("submit", (e) => {
   editingId = null;
   dlg.close();
   renderAll();
-  toast("Saved");
+  toast(t("saved"));
 });
 
 /* ---- Import: parse -> review -> commit ----------------------------------------- */
@@ -383,12 +381,12 @@ let reviewBatch = null;
 document.getElementById("btn-import").addEventListener("click", async () => {
   const file = document.getElementById("f-file").files[0];
   const out = document.getElementById("import-result");
-  if (!file) { out.textContent = "Choose a file first."; return; }
-  out.textContent = "Parsing…";
+  if (!file) { out.textContent = t("imp_choose_first"); return; }
+  out.textContent = t("imp_parsing");
   try {
     const { platform, expenses } = await Importers.parseFile(file);
     if (!platform) {
-      out.textContent = "Could not detect WeChat or Alipay format in this file.";
+      out.textContent = t("imp_no_detect");
       return;
     }
     const existing = new Set(
@@ -410,7 +408,7 @@ document.getElementById("btn-import").addEventListener("click", async () => {
     document.getElementById("review-card").style.display = "block";
     document.getElementById("review-card").scrollIntoView({ behavior: "smooth" });
   } catch (err) {
-    out.textContent = "Import failed: " + err.message;
+    out.textContent = t("imp_failed") + (err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") : err.message);
   }
 });
 
@@ -422,8 +420,11 @@ function renderReview() {
   const needEye = rows.filter((r) => !r.dupe && !r.proposed).length;
   const platLabel = reviewBatch.platform === "wechat" ? "WeChat Pay" : "Alipay";
   document.getElementById("review-summary").textContent =
-    `${platLabel} · ${rows.length} rows · ${dupes} duplicate${dupes === 1 ? "" : "s"} skipped · ` +
-    `${auto} auto-categorized · ${needEye} need${needEye === 1 ? "s" : ""} your eye`;
+    t("rev_summary").replace("{plat}", platLabel)
+      .replace("{n}", String(rows.length))
+      .replace("{d}", String(dupes))
+      .replace("{a}", String(auto))
+      .replace("{e}", String(needEye));
 
   document.getElementById("review-rows").innerHTML = rows.map((r, i) => `
     <tr class="${r.dupe ? "dupe" : ""}${!r.dupe && !r.proposed ? "needs-review" : ""}">
@@ -437,8 +438,8 @@ function renderReview() {
           `<option value="${esc(c)}"${(r.proposed || "Other") === c ? " selected" : ""}>${catLabel(c)}</option>`
         ).join("")}
       </select>
-      ${!r.dupe && !r.proposed ? `<div class="muted">needs review</div>` : ""}</td>
-      <td>${r.dupe ? `<span class="muted">duplicate</span>` : ""}</td>
+      ${!r.dupe && !r.proposed ? `<div class="muted">${t("lbl_needs_review")}</div>` : ""}</td>
+      <td>${r.dupe ? `<span class="muted">${t("lbl_duplicate")}</span>` : ""}</td>
     </tr>`).join("");
 
   document.getElementById("review-all").checked =
@@ -491,7 +492,8 @@ document.getElementById("btn-review-confirm").addEventListener("click", () => {
   document.getElementById("review-card").style.display = "none";
   document.getElementById("f-file").value = "";
   renderAll();
-  toast(`Imported ${added}${eye ? ` · ${eye} need review` : ""}`);
+  toast(t("import_done").replace("{n}", String(added)) +
+    (eye ? t("import_done_review").replace("{e}", String(eye)) : ""));
 });
 
 /* ---- Budgets -------------------------------------------------------------------- */
@@ -519,18 +521,18 @@ function renderBudgets() {
           <span class="amount">${sym}${fmt(s)}${b > 0 ? ` <span class="muted">/ ${sym}${fmt(b)}</span>` : ""}</span>
         </div>
         <div class="progress"><i style="width:${pct.toFixed(0)}%;background:${over ? "#dc2626" : m.color}"></i></div>
-        ${over ? `<div class="over-warn">Over budget by ${sym}${fmt(s - b)}</div>` : ""}
+        ${over ? `<div class="over-warn">${t("bud_over").replace("{a}", sym + fmt(s - b))}</div>` : ""}
       </div>
       <input type="number" min="0" step="1" class="budget-input" data-budget="${esc(c)}"
-        placeholder="Set budget" value="${b > 0 ? b : ""}">
+        placeholder="${t("ph_set_budget")}" value="${b > 0 ? b : ""}">
     </div>`;
   }).join("");
 
   document.getElementById("budget-rows").innerHTML =
     `<div class="card budget-summary">
-       <span>Spent <strong>${sym}${fmt(totSpent)}</strong></span>
-       <span class="muted">of</span>
-       <span>Budget <strong>${sym}${fmt(totBudget)}</strong></span>
+       <span>${t("bud_spent")} <strong>${sym}${fmt(totSpent)}</strong></span>
+       <span class="muted">${t("bud_of")}</span>
+       <span>${t("bud_budget")} <strong>${sym}${fmt(totBudget)}</strong></span>
      </div>` + rows;
 
   document.querySelectorAll("[data-budget]").forEach((inp) => {
@@ -575,7 +577,7 @@ document.getElementById("btn-export-json").addEventListener("click", () => {
   a.download = `expense-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast("Backup downloaded");
+  toast(t("backup_dl"));
 });
 document.getElementById("f-restore").addEventListener("change", (e) => {
   const f = e.target.files[0];
@@ -585,20 +587,19 @@ document.getElementById("f-restore").addEventListener("change", (e) => {
     try {
       DB.importAll(JSON.parse(rd.result));
       renderAll();
-      toast("Backup restored");
+      toast(t("backup_restored"));
     } catch (err) {
-      alert("Restore failed: " + err.message);
+      alert(t("restore_failed") + (err && err.code === "invalid_backup" ? t("backup_invalid") : err.message));
     }
   };
   rd.readAsText(f);
   e.target.value = "";
 });
 document.getElementById("btn-wipe").addEventListener("click", async () => {
-  const cloudNote = Cloud.signedIn() ? " (including the synced cloud copy)" : "";
-  if (!confirm("Delete ALL expenses, budgets, memory and settings" + cloudNote +
-               "? This cannot be undone.")) return;
+  const cloudNote = Cloud.signedIn() ? t("wipe_cloud_note") : "";
+  if (!confirm(t("wipe_confirm").replace("{note}", cloudNote))) return;
   if (Cloud.signedIn()) {
-    try { await Sync.wipeCloud(); } catch (e) { toast("Cloud delete failed: " + e.message); return; }
+    try { await Sync.wipeCloud(); } catch (e) { toast(t("cloud_del_failed") + e.message); return; }
   }
   for (const k of ["exp_expenses", "exp_merchant_memory", "exp_user_rules",
                    "exp_budgets", "exp_settings", "exp_seq", "exp_migrated_v2",
@@ -606,18 +607,18 @@ document.getElementById("btn-wipe").addEventListener("click", async () => {
     storage.removeItem(k);
   }
   renderAll();
-  toast("All data deleted");
+  toast(t("wiped"));
 });
 
 /* ---- Selects ----------------------------------------------------------------------- */
 function fillSelects() {
   document.getElementById("f-plat").innerHTML =
-    PLATFORMS.map(([p, l]) => `<option value="${p}">${esc(l)}</option>`).join("");
+    PLATFORMS.map(([p]) => `<option value="${p}">${esc(tPlat(p))}</option>`).join("");
   document.getElementById("f-platform").innerHTML =
-    `<option value="">All platforms</option>` +
-    PLATFORMS.map(([p, l]) => `<option value="${p}">${esc(l)}</option>`).join("");
+    `<option value="">${t("opt_all_platforms")}</option>` +
+    PLATFORMS.map(([p]) => `<option value="${p}">${esc(tPlat(p))}</option>`).join("");
   document.getElementById("f-category").innerHTML =
-    `<option value="">All categories</option>` +
+    `<option value="">${t("opt_all_categories")}</option>` +
     CATEGORY_IDS.map((c) => `<option value="${esc(c)}">${catLabel(c)}</option>`).join("");
   document.getElementById("bulk-cat").innerHTML =
     CATEGORY_IDS.filter((c) => c !== "Other").map((c) =>
@@ -649,11 +650,11 @@ function showAuthView() {
 function onCloudAuthChange(user, wasIn) {
   if (user && !wasIn) {
     showApp();
-    toast("Signed in — syncing…");
+    toast(t("signed_in"));
     Sync.syncNow();
   } else if (!user && wasIn) {
     showAuthView();
-    toast("Signed out");
+    toast(t("signed_out"));
   }
   renderSyncStatus();
 }
@@ -663,29 +664,28 @@ function renderSyncStatus() {
   const detail = document.getElementById("backend-detail");
   const signout = document.getElementById("btn-signout");
   if (!pill) return;
-  let label = "Local only", cls = "";
-  let det = "Backend not configured — data stays in this browser. " +
-            "Add your Supabase keys in config.js to sync across devices.";
+  let label = t("sync_local"), cls = "";
+  let det = t("sync_det_local");
   let showSignout = false;
   if (Cloud.configured()) {
     if (!Cloud.ready()) {
-      label = "Library missing";
-      det = "The Supabase library failed to load — check your connection and reload.";
+      label = t("sync_lib");
+      det = t("sync_det_lib");
     } else if (!Cloud.signedIn()) {
-      label = "Signed out";
-      det = "Sign in to sync your data across devices.";
+      label = t("sync_out");
+      det = t("sync_det_out");
     } else {
       showSignout = true;
       const email = (Cloud.user() && Cloud.user().email) || "";
       if (Sync.status === "syncing") {
-        label = "Syncing…";
-        det = "Connected as " + email + ".";
+        label = t("sync_ing");
+        det = t("sync_det_ing").replace("{email}", email);
       } else if (Sync.status === "error") {
-        label = "Sync error"; cls = "err";
-        det = "Connected as " + email + " — " + (Sync.lastError || "unknown error") + ".";
+        label = t("sync_err"); cls = "err";
+        det = t("sync_det_err").replace("{email}", email).replace("{err}", Sync.lastError || "unknown error");
       } else {
-        label = "Connected"; cls = "ok";
-        det = "Connected as " + email + " — changes sync automatically.";
+        label = t("sync_ok"); cls = "ok";
+        det = t("sync_det_ok").replace("{email}", email);
       }
     }
   }
@@ -699,7 +699,7 @@ function renderSyncStatus() {
       const email = (Cloud.user() && Cloud.user().email) || "?";
       chip.hidden = false;
       chip.textContent = email.trim().charAt(0).toUpperCase() || "?";
-      chip.title = "Signed in as " + email + " — open settings";
+      chip.title = t("acct_title").replace("{email}", email);
     } else {
       chip.hidden = true;
     }
@@ -709,14 +709,12 @@ function renderSyncStatus() {
 function friendlyAuthError(e, mode) {
   const m = (e && e.message) || "Something went wrong";
   if (/invalid login credentials/i.test(m))
-    return mode === "signup"
-      ? "Couldn't create the account — please check the email and try again."
-      : "No account matches that email and password. New here? Tap “Create account” below.";
+    return mode === "signup" ? t("auth_err_badcreds_signup") : t("auth_err_badcreds_signin");
   if (/already registered|already exists|duplicate/i.test(m))
-    return "This email already has an account — tap “Sign in” instead.";
-  if (/password.*(6|short|length)/i.test(m)) return "Password must be at least 6 characters.";
+    return t("auth_err_exists");
+  if (/password.*(6|short|length)/i.test(m)) return t("auth_err_pw");
   if (/email/i.test(m) && /confirm/i.test(m))
-    return "Please confirm your email first (check your inbox).";
+    return t("auth_err_confirm");
   return m;
 }
 
@@ -727,7 +725,7 @@ async function handleAuth(mode) {
   err.style.display = "none";
   err.textContent = "";
   if (!email || !pw) {
-    err.textContent = "Enter your email and password.";
+    err.textContent = t("auth_err_empty");
     err.style.display = "block";
     return;
   }
@@ -748,11 +746,11 @@ document.getElementById("btn-signout").addEventListener("click", async () => {
 });
 document.getElementById("btn-sync-now").addEventListener("click", () => {
   if (!Cloud.signedIn()) {
-    toast(Cloud.configured() ? "Sign in first" : "Backend not configured");
+    toast(Cloud.configured() ? t("signin_first") : t("backend_not_configured"));
     return;
   }
   Sync.syncNow();
-  toast("Syncing…");
+  toast(t("sync_ing"));
 });
 
 function registerServiceWorker() {
@@ -760,6 +758,12 @@ function registerServiceWorker() {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 }
+
+/* Re-render language-sensitive dynamic UI on a language change. */
+window.onLangChange = function () {
+  renderSyncStatus();
+  if (reviewBatch) renderReview();
+};
 
 async function boot() {
   fillSelects();
