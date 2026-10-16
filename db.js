@@ -231,13 +231,14 @@ const DB = {
       if (data[k] !== undefined) e[k] = data[k];
     }
     if (data.amount !== undefined && data.amount !== "") e.amount = parseFloat(data.amount);
-    if (data.category && data.category !== e.category) {
-      this.setCategory(id, data.category, true);
-      return true;
-    }
+    // Write the field changes BEFORE the category hand-off: setCategory
+    // re-reads from storage, so delegating first (the old order) silently
+    // discarded every other field changed in the same call.
+    const catChanged = !!(data.category && data.category !== e.category);
     e.updated_at = this.nowIso();
     this._write("exp_expenses", list);
     this.markSyncDirty("expenses", "upsert", e.id);
+    if (catChanged) this.setCategory(id, data.category, true);
     return true;
   },
 

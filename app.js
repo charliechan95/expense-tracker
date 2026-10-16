@@ -396,8 +396,9 @@ let reviewBatch = null;
 /* Shared review builder: takes parsed {platform, expenses} from the file
    path or the paste path and stages the pre-commit preview. */
 function startReview(platform, expenses) {
-  const existing = new Set(
-    DB.list({ limit: 100000 }).map((x) => x.external_id).filter(Boolean)
+  const existingByExt = new Map(
+    DB.list({ limit: 100000 }).filter((x) => x.external_id)
+      .map((x) => [x.external_id, x])
   );
   const seen = new Set();
   reviewBatch = {
@@ -405,12 +406,22 @@ function startReview(platform, expenses) {
     rows: expenses.map((exp) => {
       const p = Categorizer.propose(exp.merchant,
         ((exp.description || "") + " " + (exp.txtype || "")).trim());
+      const stored = exp.external_id ? existingByExt.get(exp.external_id) : null;
+      // Enrichment upgrade: the stored row came from an earlier, poorer
+      // parse (e.g. a statement read before its CJK names decoded) and
+      // this parse has the merchant it lacks. Not a duplicate: on
+      // confirm, the stored row is filled in — amount, date and any
+      // user-set category are never overwritten.
+      const upgrade = !!(stored && !(stored.merchant || "").trim() && (exp.merchant || "").trim());
       // exp.dupe: pre-set by callers that do their own best-effort dedupe
       // (screenshot rows carry no transaction number). Untouched otherwise.
-      const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id))) || !!exp.dupe;
+      const dupe = !upgrade &&
+        ((exp.external_id && (!!stored || seen.has(exp.external_id))) || !!exp.dupe);
       if (exp.external_id) seen.add(exp.external_id);
       return { ...exp, proposed: p.category, via: p.via,
-               initial: p.category || "Other", checked: !dupe, dupe: !!dupe };
+               initial: p.category || "Other", checked: !dupe, dupe: !!dupe,
+               upgradeId: upgrade ? stored.id : null,
+               storedCatSource: upgrade ? stored.cat_source : null };
     }),
   };
   renderReview();
@@ -465,11 +476,12 @@ async function ensurePdfJs() {
     lib.GlobalWorkerOptions.workerSrc =
       "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.mjs";
     // Without the CMap pack, pdf.js silently drops CJK glyphs — Chinese
-    // merchant names on statements would vanish. Pinned, same version.
+    // merchant names on statements would vanish. The maps ship WITH the
+    // app (cmaps/ folder, from the same pinned pdfjs-dist package) and
+    // load from the app's own origin: no CDN fetch can break them.
     window.__pdfjsOptions = {
-      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/cmaps/",
+      cMapUrl: location.origin + location.pathname.replace(/[^/]*$/, "") + "cmaps/",
       cMapPacked: true,
-      standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/standard_fonts/",
     };
     window.__pdfjsLib = lib;
     return lib;
@@ -583,9 +595,11 @@ function renderReview() {
         ).join("")}
       </select>
       ${!r.dupe && !r.proposed ? `<div class="muted">${t("lbl_needs_review")}</div>` : ""}</td>
-      <td>${r.dupe ? `<span class="muted">${t("lbl_duplicate")}</span>` : ""}</td>
+      <td>${r.dupe ? `<span class="muted">${t("lbl_duplicate")}</span>` : r.upgradeId ? `<span class="muted">${t("lbl_will_update")}</span>` : ""}</td>
     </tr>`).join("");
 
+  const adEl = document.getElementById("review-alldupes");
+  if (adEl) adEl.style.display = rows.length && dupes === rows.length ? "block" : "none";
   document.getElementById("review-all").checked =
     rows.filter((r) => !r.dupe).every((r) => r.checked);
   document.querySelectorAll("[data-review]").forEach((cb) => {
@@ -617,12 +631,23 @@ document.getElementById("btn-review-cancel").addEventListener("click", () => {
 document.getElementById("btn-review-confirm").addEventListener("click", () => {
   if (!reviewBatch) return;
   const ids = [];
+  const updatedIds = [];
   let total = 0;
   const dupes = reviewBatch.rows.filter((r) => r.dupe).length;
   reviewBatch.rows.forEach((r, i) => {
     if (!r.checked || r.dupe) return;
     const sel = document.querySelector(`[data-review-cat="${i}"]`);
     const chosen = sel ? sel.value : r.initial;
+    if (r.upgradeId) {
+      // Fill in the stored row; only merchant/description, plus the
+      // category when the user changed it here or the stored row was
+      // never categorised and the engine now has a proposal.
+      const patch = { merchant: r.merchant, description: r.description || r.merchant };
+      if (chosen !== r.initial) patch.category = chosen;
+      else if (r.storedCatSource === "unreviewed" && r.proposed) patch.category = r.proposed;
+      if (DB.update(r.upgradeId, patch)) updatedIds.push(r.upgradeId);
+      return;
+    }
     let cat_source;
     if (chosen !== r.initial) {
       // User overrode the proposal (or picked a category for an unknown row)
@@ -640,13 +665,14 @@ document.getElementById("btn-review-confirm").addEventListener("click", () => {
       total += parseFloat(r.amount) || 0;
     }
   });
-  const added = ids.length;
+  const added = ids.length + updatedIds.length;
   if (added) {
     DB.recordImportBatch({
       id: "imp-" + Date.now().toString(36),
       ts: new Date().toISOString(),
       platform: reviewBatch.platform,
       expenseIds: ids,
+      updatedIds,
       count: added,
       total,
       currency: reviewBatch.rows.length ? reviewBatch.rows[0].currency : "CNY",
