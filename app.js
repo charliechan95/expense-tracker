@@ -638,14 +638,20 @@ async function preprocessShotForOcr(file) {
   }
 }
 
-/* pdf.js (ESM build): reads AlipayHK statement PDFs on-device.
-   Stored on window.__pdfjsLib — the seam Importers._parsePdfBytes uses. */
+/* pdf.js (LEGACY ESM build): reads AlipayHK statement PDFs on-device.
+   Stored on window.__pdfjsLib — the seam Importers._parsePdfBytes uses.
+   The legacy build is deliberate: the modern build calls
+   Promise.withResolvers(), which older mobile browsers (pre-Chrome 119 /
+   pre-Safari 18) do not have — a real phone failed with exactly that
+   error on 2026-10-16. The legacy build of the same pinned version
+   bundles its own polyfills; verified against a genuine statement in a
+   withResolvers-less runtime (9 rows, HKD 589.00). */
 async function ensurePdfJs() {
   if (window.__pdfjsLib && window.__pdfjsLib.getDocument) return window.__pdfjsLib;
   try {
-    const lib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.mjs");
+    const lib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/legacy/build/pdf.min.mjs");
     lib.GlobalWorkerOptions.workerSrc =
-      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.mjs";
+      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/legacy/build/pdf.worker.min.mjs";
     // Without the CMap pack, pdf.js silently drops CJK glyphs — Chinese
     // merchant names on statements would vanish. The maps ship WITH the
     // app (cmaps/ folder, from the same pinned pdfjs-dist package) and
