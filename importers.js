@@ -331,13 +331,24 @@ const Importers = {
     const platform = w.startsWith("wechat") ? "wechat" : "alipay";
     const currency = w.endsWith("_hk") ? "HKD" : "CNY";
     const rows = this._extractShotRows(String(text || ""), currency);
-    return rows.map((r) => ({
-      amount: r.amount, currency, category: "Other", platform,
-      merchant: r.merchant, description: r.merchant, expense_date: r.date,
-      external_id: "shot:" + w + "|" + r.date + "|" + r.amount.toFixed(2) + "|" +
-        (r.merchant || "").replace(/[|\s]+/g, " ").trim(),
-      source: "screenshot",
-    }));
+    // Identical rows inside one screenshot (same merchant, amount, even
+    // the same minute) are real, separate payments — the id gets an
+    // occurrence suffix so dedupe never swallows a genuine twin. A
+    // re-import of the same screenshot reproduces the same ids in the
+    // same order, so cross-import dedupe still works.
+    const counts = new Map();
+    return rows.map((r) => {
+      const base = "shot:" + w + "|" + r.date + "|" + r.amount.toFixed(2) + "|" +
+        (r.merchant || "").replace(/[|\s]+/g, " ").trim();
+      const n = (counts.get(base) || 0) + 1;
+      counts.set(base, n);
+      return {
+        amount: r.amount, currency, category: "Other", platform,
+        merchant: r.merchant, description: r.merchant, expense_date: r.date,
+        external_id: n > 1 ? base + "#" + n : base,
+        source: "screenshot",
+      };
+    });
   },
 
   /* OCR digit confusions (0<->O, 1<->l, 5<->S ...). Applied ONLY to
@@ -356,7 +367,12 @@ const Importers = {
       .replace(/（/g, "(").replace(/）/g, ")")
       .replace(/：/g, ":").replace(/，/g, ",").replace(/．/g, ".")
       .replace(/－/g, "-").replace(/＋/g, "+")
-      .replace(/HKS(?=\s*[0-9OolIi])/gi, "HK$"); // OCR misread of HK$
+      .replace(/HKS\$/g, "HK$") // OCR misreads of HK$: "HKS$94.00",
+      .replace(/HK9\$/g, "HK$") // "HK9$552.85" ($ read as 9, $ kept too)
+      .replace(/HKS(?=\s*[0-9OolIi])/gi, "HK$")
+      // Tesseract spaces out CJK runs ("中 國 移動 香港"); join them back
+      // so merchants display and match keywords as written in the app.
+      .replace(/([\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])/g, "$1");
   },
 
   _shotIsChrome(line) {
@@ -443,8 +459,12 @@ const Importers = {
       .map((l) => l.trim()).filter(Boolean);
     const out = [];
     const emit = (rowData, date) => {
-      out.push({ amount: Math.round(rowData.amount * 100) / 100,
-                 merchant: rowData.merchant, date });
+      // Merchant hygiene: drop the wallet's row-icon OCR token (a lone
+      // leading "0") and stray "~" residue the engine leaves behind.
+      const merchant = String(rowData.merchant || "")
+        .replace(/^0\s+(?=[\u4e00-\u9fffA-Za-z])/, "")
+        .replace(/^[~\uFF5E]\s*/, "").trim();
+      out.push({ amount: Math.round(rowData.amount * 100) / 100, merchant, date });
     };
     let ctxDate = "";
     let pendingMerchant = "";
@@ -480,7 +500,7 @@ const Importers = {
       }
       // Leftover text on the amount line is the merchant (single-line rows).
       let merchant = pendingMerchant;
-      const leftover = rest.replace(amt.raw, " ").replace(/[()·….\s\-–—,]+$/g, "").trim();
+      const leftover = rest.replace(amt.raw, " ").replace(/[()·….\s\-–—,~\uFF5E]+$/g, "").trim();
       if (/[\u4e00-\u9fffA-Za-z]/.test(leftover)) merchant = leftover;
       if (this._shotRowKind(rest, merchant, amt.signed) !== "expense") {
         pendingMerchant = "";

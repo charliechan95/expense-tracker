@@ -467,6 +467,43 @@ async function ensureTesseract() {
   return Tesseract;
 }
 
+/* Screenshot OCR prep. Wallet apps print the date/time line in pale
+   grey; Tesseract's own thresholding discards it entirely — on a real
+   WeChat Pay HK list every date vanished, and undated rows are dropped,
+   so the import read zero rows. Force the issue before OCR: greyscale,
+   invert when the shot is dark-mode, then a hard curve (anything not
+   near-white becomes black). Verified against that real screenshot:
+   every row, date and amount reads. Any failure falls back to the
+   original file — never worse than no prep. */
+async function preprocessShotForOcr(file) {
+  try {
+    if (typeof createImageBitmap !== "function") return file;
+    const bmp = await createImageBitmap(file);
+    const scale = bmp.width > 0 && bmp.width < 1000 ? 2 : 1;
+    const c = document.createElement("canvas");
+    c.width = bmp.width * scale;
+    c.height = bmp.height * scale;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return file;
+    ctx.drawImage(bmp, 0, 0, c.width, c.height);
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const d = img.data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) sum += (d[i] + d[i + 1] + d[i + 2]) / 3;
+    const invert = sum / (d.length / 4) < 110; // dark-mode shot
+    for (let i = 0; i < d.length; i += 4) {
+      let v = (d[i] + d[i + 1] + d[i + 2]) / 3;
+      if (invert) v = 255 - v;
+      const o = v < 235 ? 0 : 255;
+      d[i] = d[i + 1] = d[i + 2] = o;
+    }
+    ctx.putImageData(img, 0, 0);
+    return c;
+  } catch (e) {
+    return file;
+  }
+}
+
 /* pdf.js (ESM build): reads AlipayHK statement PDFs on-device.
    Stored on window.__pdfjsLib — the seam Importers._parsePdfBytes uses. */
 async function ensurePdfJs() {
@@ -771,7 +808,7 @@ async function readScreenshots() {
     let allText = "";
     for (let i = 0; i < files.length; i++) {
       prog.textContent = t("shot_reading").replace("{i}", String(i + 1)).replace("{n}", String(files.length));
-      const { data } = await Tess.recognize(files[i], "chi_tra+chi_sim+eng", {
+      const { data } = await Tess.recognize(await preprocessShotForOcr(files[i]), "chi_tra+chi_sim+eng", {
         logger: (m) => {
           if (m && m.status === "recognizing text" && m.progress != null)
             prog.textContent = t("shot_reading_pct").replace("{p}", String(Math.round(m.progress * 100)));
@@ -787,12 +824,12 @@ async function readScreenshots() {
     const key = (r) => [r.expense_date, Number(r.amount).toFixed(2),
       (r.merchant || "").trim(), (r.description || "").trim(), r.currency].join("|");
     const stored = new Set(DB.list({ limit: 100000 }).map(key));
-    const seen = new Set();
     let dupes = 0;
     rows.forEach((r) => {
-      const k = key(r);
-      if (stored.has(k) || seen.has(k)) { r.dupe = true; dupes++; }
-      else seen.add(k);
+      // Only rows already in the records count as duplicates. Identical
+      // rows inside one batch are kept: two equal payments in a single
+      // screenshot (same merchant, amount, same minute) are real spends.
+      if (stored.has(key(r))) { r.dupe = true; dupes++; }
     });
     out.textContent = dupes ? t("shot_dupes").replace("{n}", String(dupes)) : "";
     startReview(map.platform, rows);
