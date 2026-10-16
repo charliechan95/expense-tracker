@@ -1265,35 +1265,122 @@ function friendlyAuthError(e, mode) {
   return m;
 }
 
+/* Auth screen state: one explicit mode at a time, so a first-time user
+   is never asked to guess whether "Sign in" or "Create account" applies. */
+let authMode = "signin";
+let authBusy = false;
+
+function clearAuthMessages() {
+  const box = document.getElementById("auth-error");
+  box.style.display = "none";
+  box.textContent = "";
+}
+
+function renderPasswordToggle() {
+  const input = document.getElementById("auth-password");
+  const btn = document.getElementById("btn-toggle-pw");
+  if (!input || !btn) return;
+  const visible = input.type === "text";
+  btn.textContent = t(visible ? "auth_hide_pw" : "auth_show_pw");
+  btn.setAttribute("aria-label", btn.textContent);
+  btn.setAttribute("aria-pressed", String(visible));
+}
+
+function renderAuthMode() {
+  const signup = authMode === "signup";
+  const intro = document.getElementById("auth-intro");
+  intro.dataset.i18n = signup ? "auth_intro_signup" : "auth_intro";
+  intro.textContent = t(intro.dataset.i18n);
+  const submit = document.getElementById("btn-auth-submit");
+  submit.dataset.i18n = signup ? "auth_signup" : "auth_signin";
+  submit.textContent = authBusy
+    ? t(signup ? "auth_working_signup" : "auth_working_signin")
+    : t(submit.dataset.i18n);
+  const prompt = document.getElementById("auth-mode-prompt");
+  prompt.dataset.i18n = signup ? "auth_mode_existing" : "auth_mode_new";
+  prompt.textContent = t(prompt.dataset.i18n);
+  const modeBtn = document.getElementById("btn-auth-mode");
+  modeBtn.dataset.i18n = signup ? "auth_signin" : "auth_signup";
+  modeBtn.textContent = t(modeBtn.dataset.i18n);
+  document.getElementById("auth-password").autocomplete =
+    signup ? "new-password" : "current-password";
+  document.getElementById("auth-pw-hint").style.display = signup ? "" : "none";
+  document.getElementById("btn-forgot").style.display = signup ? "none" : "";
+  renderPasswordToggle();
+}
+
+function setAuthMode(mode) {
+  authMode = mode;
+  clearAuthMessages();
+  renderAuthMode();
+}
+
+function setAuthBusy(busy) {
+  authBusy = busy;
+  document.querySelectorAll("#view-auth input, #view-auth button")
+    .forEach((el) => { el.disabled = busy; });
+  renderAuthMode();
+}
+
 async function handleAuth(mode) {
+  if (authBusy) return;
   const email = document.getElementById("auth-email").value.trim();
   const pw = document.getElementById("auth-password").value;
-  const err = document.getElementById("auth-error");
-  err.style.display = "none";
-  err.textContent = "";
+  clearAuthMessages();
   if (!email || !pw) {
-    err.textContent = t("auth_err_empty");
-    err.style.display = "block";
+    authMsg(t("auth_err_empty"));
     return;
   }
+  if (mode === "signup" && pw.length < 6) {
+    authMsg(t("auth_err_pw"));
+    return;
+  }
+  const wasGuest = Cloud.guest();
+  setAuthBusy(true);
   try {
-    if (mode === "signup") await Cloud.signUp(email, pw);
-    else await Cloud.signIn(email, pw);
-    // onCloudAuthChange fires from sb.js → shows the app + syncs.
+    if (mode === "signup") {
+      const data = await Cloud.signUp(email, pw);
+      if (data && data.user && !data.session) {
+        // Email confirmation is on for this backend: the account exists
+        // but there is no session yet. Say exactly what happens next.
+        setAuthMode("signin");
+        authMsg(t("auth_check_email"), true);
+        return;
+      }
+      if (data && data.session && !wasGuest) toast(t("auth_welcome"));
+    } else {
+      await Cloud.signIn(email, pw);
+    }
+    // A live session arrives via onCloudAuthChange → shows the app + syncs.
   } catch (e) {
-    err.textContent = friendlyAuthError(e, mode);
-    err.style.display = "block";
+    authMsg(friendlyAuthError(e, mode));
+  } finally {
+    setAuthBusy(false);
   }
 }
 
-document.getElementById("btn-signin").addEventListener("click", () => handleAuth("signin"));
-document.getElementById("btn-signup").addEventListener("click", () => handleAuth("signup"));
+document.getElementById("auth-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  handleAuth(authMode);
+});
+document.getElementById("btn-auth-mode").addEventListener("click", () => {
+  if (!authBusy) setAuthMode(authMode === "signin" ? "signup" : "signin");
+});
+document.getElementById("btn-toggle-pw").addEventListener("click", () => {
+  const input = document.getElementById("auth-password");
+  input.type = input.type === "password" ? "text" : "password";
+  renderPasswordToggle();
+  input.focus();
+});
+renderAuthMode();
 
-/* Auth message box (shared by sign-in errors and the reset flow). */
-function authMsg(text) {
-  const err = document.getElementById("auth-error");
-  err.textContent = text;
-  err.style.display = "block";
+/* Auth message box (shared by auth errors, confirmations and the reset
+   flow). info=true renders the calm success styling instead of red. */
+function authMsg(text, info = false) {
+  const box = document.getElementById("auth-error");
+  box.className = info ? "auth-info" : "auth-error";
+  box.textContent = text;
+  box.style.display = "block";
 }
 
 function showResetBlock() {
@@ -1320,7 +1407,7 @@ document.getElementById("btn-magic").addEventListener("click", async () => {
   if (!email) { authMsg(t("auth_email_needed")); return; }
   try {
     await Cloud.signInWithMagicLink(email);
-    authMsg(t("auth_magic_sent"));
+    authMsg(t("auth_magic_sent"), true);
   } catch (e) { authMsg(friendlyAuthError(e, "signin")); }
 });
 document.getElementById("btn-forgot").addEventListener("click", async () => {
@@ -1331,7 +1418,7 @@ document.getElementById("btn-forgot").addEventListener("click", async () => {
   }
   try {
     await Cloud.resetPassword(email);
-    authMsg(t("auth_reset_sent"));
+    authMsg(t("auth_reset_sent"), true);
   } catch (e) {
     authMsg(friendlyAuthError(e, "signin"));
   }
@@ -1355,6 +1442,12 @@ document.getElementById("btn-setpw").addEventListener("click", async () => {
     renderSyncStatus();
   } catch (e) {
     authMsg(friendlyAuthError(e, "signin"));
+  }
+});
+document.getElementById("auth-newpw").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("btn-setpw").click();
   }
 });
 document.getElementById("btn-signout").addEventListener("click", async () => {
@@ -1401,6 +1494,7 @@ function registerServiceWorker() {
 
 /* Re-render language-sensitive dynamic UI on a language change. */
 window.onLangChange = function () {
+  if (document.getElementById("auth-form")) renderAuthMode();
   renderSyncStatus();
   if (reviewBatch) renderReview();
   renderImportHistory();

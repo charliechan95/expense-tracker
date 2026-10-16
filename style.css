@@ -396,6 +396,21 @@ body.signed-out #fab { display: none; }
 .auth-card input { width: 100%; margin-top: 0.35rem; }
 .auth-actions { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
 .auth-actions button { flex: 1; }
+.auth-quick { margin-bottom: 0.2rem; }
+.magic-btn { width: 100%; margin: 0.15rem 0 0.25rem; }
+.password-field { display: flex; gap: 0.5rem; align-items: stretch; margin-top: 0.35rem; }
+.password-field input { flex: 1; min-width: 0; margin-top: 0 !important; }
+.pw-toggle { white-space: nowrap; padding-inline: 0.7rem; }
+.auth-hint { display: block; margin-top: 0.4rem; font-size: 0.82rem; font-weight: 400; }
+.auth-mode { display: flex; align-items: center; justify-content: center; gap: 0.45rem; margin-top: 0.9rem; font-size: 0.9rem; }
+.auth-mode button { background: none; border: none; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; padding: 0; }
+.auth-card button:disabled, .auth-card input:disabled { opacity: 0.55; cursor: not-allowed; }
+.auth-info {
+  background: color-mix(in srgb, var(--accent) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--accent-deep); border-radius: 10px;
+  padding: 0.6rem 0.9rem; font-size: 0.9rem; margin-bottom: 1rem; text-align: left;
+}
 .guest-btn { width: 100%; margin-top: 0.7rem; }
 .auth-forgot { display: block; margin: 0.7rem auto 0; background: none; border: none; color: inherit; text-decoration: underline; cursor: pointer; font-size: 0.85rem; opacity: 0.8; }
 .auth-divider { display: flex; align-items: center; gap: 0.7rem; margin: 1rem 0 0.7rem; font-size: 0.8rem; opacity: 0.75; }

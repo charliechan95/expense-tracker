@@ -272,25 +272,38 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12.5h6M9 16.5h3.5"/></svg>
     </div>
     <h1 data-i18n="brand">Expense Tracker</h1>
-    <p class="muted" data-i18n="auth_intro">Sign in to keep your expenses synced across your devices.</p>
+    <p class="muted" id="auth-intro" data-i18n="auth_intro">Sign in to keep your expenses synced across your devices.</p>
     <div id="auth-error" class="auth-error" style="display:none"></div>
+    <div class="auth-quick">
+    <button id="btn-google" class="google-btn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.2-2.1 3.7-5.1 3.7-8.9z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.8-5l-3.9 3C3.3 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-3.9-3C.5 9.2 0 10.6 0 12s.5 2.8 1.3 4.4l3.9-3z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c.9-2.8 3.6-4.9 6.8-4.9z"/></svg><span data-i18n="auth_google">Continue with Google</span></button>
+    </div>
+    <div class="auth-divider"><span data-i18n="auth_or">or</span></div>
+    <form id="auth-form" novalidate>
     <label><span data-i18n="lbl_email">Email</span>
-      <input type="email" id="auth-email" autocomplete="email" placeholder="you@example.com"></label>
+      <input type="email" id="auth-email" autocomplete="email" inputmode="email" placeholder="you@example.com"></label>
+    <button id="btn-magic" class="primary magic-btn" type="button" data-i18n="auth_magic">Email me a sign-in link</button>
+    <div class="auth-divider"><span data-i18n="auth_or_password">or use a password</span></div>
     <label><span data-i18n="lbl_password">Password</span>
-      <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••"></label>
+      <span class="password-field">
+        <input type="password" id="auth-password" autocomplete="current-password" placeholder="••••••••">
+        <button id="btn-toggle-pw" class="pw-toggle" type="button" aria-pressed="false">Show password</button>
+      </span>
+      <span id="auth-pw-hint" class="auth-hint muted" style="display:none" data-i18n="auth_pw_hint">Use at least 6 characters.</span>
+    </label>
     <div id="auth-reset-block" style="display:none">
       <label><span data-i18n="auth_newpw">New password</span>
         <input type="password" id="auth-newpw" autocomplete="new-password" placeholder="••••••••"></label>
       <button id="btn-setpw" class="primary" type="button" data-i18n="auth_setpw">Set new password</button>
     </div>
     <div class="auth-actions">
-      <button id="btn-signin" class="primary" data-i18n="auth_signin">Sign in</button>
-      <button id="btn-signup" data-i18n="auth_signup">Create account</button>
+      <button id="btn-auth-submit" class="primary" type="submit" data-i18n="auth_signin">Sign in</button>
+    </div>
+    <div class="auth-mode">
+      <span id="auth-mode-prompt" data-i18n="auth_mode_new">New here?</span>
+      <button id="btn-auth-mode" type="button" data-i18n="auth_signup">Create account</button>
     </div>
     <button id="btn-forgot" class="auth-forgot" type="button" data-i18n="auth_forgot">Forgot password?</button>
-    <div class="auth-divider"><span data-i18n="auth_or">or</span></div>
-    <button id="btn-google" class="google-btn" type="button"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.2-2.1 3.7-5.1 3.7-8.9z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.8-5l-3.9 3C3.3 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-3.9-3C.5 9.2 0 10.6 0 12s.5 2.8 1.3 4.4l3.9-3z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c.9-2.8 3.6-4.9 6.8-4.9z"/></svg><span data-i18n="auth_google">Continue with Google</span></button>
-    <button id="btn-magic" class="guest-btn" type="button" data-i18n="auth_magic">Email me a sign-in link</button>
+    </form>
     <button id="btn-guest" class="guest-btn" data-i18n="auth_guest">Continue as guest</button>
     <p class="muted auth-note" data-i18n="auth_note">Your data stays private — only you can see it.</p>
   </div>

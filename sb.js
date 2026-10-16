@@ -52,7 +52,12 @@ const Cloud = {
     if (typeof location !== "undefined" && /type=recovery/.test(location.hash || "")) {
       this._recovery = true;
     }
-    this.client = supabase.createClient(BACKEND.url, BACKEND.key);
+    // Charlie's choice (2026-10-16): keep the user signed in across
+    // browser restarts. Supabase stores only the session token locally;
+    // passwords are never stored by this app.
+    this.client = supabase.createClient(BACKEND.url, BACKEND.key, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    });
     try {
       const { data } = await this.client.auth.getSession();
       this._user = data.session ? data.session.user : null;
@@ -71,8 +76,10 @@ const Cloud = {
   async signUp(email, password) {
     const { data, error } = await this.client.auth.signUp({ email, password });
     if (error) throw error;
-    this._user = data.user;
-    return data.user;
+    // With email confirmation on, data.user exists but data.session is
+    // null — that is a pending account, not a signed-in user.
+    this._user = data.session ? data.user : null;
+    return data;
   },
 
   async signIn(email, password) {
