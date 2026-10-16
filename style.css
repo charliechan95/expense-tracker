@@ -326,6 +326,25 @@ dialog input, dialog select { width: 100%; margin-top: 0.35rem; }
 }
 #fab:hover { background: #2e2a26; }
 #fab svg { width: 24px; height: 24px; }
+
+/* ---- Agent FAB (hosted agent chat demo) ---------------------------------
+   Sits above the add-expense FAB so the two never overlap. */
+#agent-fab {
+  position: fixed; right: 1.3rem; bottom: 5.8rem;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.7rem 1.15rem; border-radius: 999px;
+  background: var(--accent); color: #fbf9f4; text-decoration: none;
+  font-family: var(--font-ui); font-size: 0.9rem; font-weight: 600;
+  box-shadow: 0 10px 28px rgba(28, 25, 23, 0.3);
+  z-index: 60;
+}
+#agent-fab:hover { background: var(--accent-deep); }
+#agent-fab svg { width: 20px; height: 20px; flex-shrink: 0; }
+@media (max-width: 560px) {
+  #agent-fab { right: 1rem; bottom: 5.5rem; padding: 0.8rem; }
+  #agent-fab .agent-fab-label { display: none; }
+  #agent-fab svg { width: 24px; height: 24px; }
+}
 .toast {
   position: fixed; left: 50%; bottom: 5.5rem;
   transform: translateX(-50%) translateY(12px);
