@@ -464,6 +464,13 @@ async function ensurePdfJs() {
     const lib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.mjs");
     lib.GlobalWorkerOptions.workerSrc =
       "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.mjs";
+    // Without the CMap pack, pdf.js silently drops CJK glyphs — Chinese
+    // merchant names on statements would vanish. Pinned, same version.
+    window.__pdfjsOptions = {
+      cMapUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/cmaps/",
+      cMapPacked: true,
+      standardFontDataUrl: "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/standard_fonts/",
+    };
     window.__pdfjsLib = lib;
     return lib;
   } catch (e) {
@@ -567,7 +574,7 @@ function renderReview() {
       <td><input type="checkbox" data-review="${i}"${r.checked ? " checked" : ""}${r.dupe ? " disabled" : ""}></td>
       <td>${esc(r.expense_date)}</td>
       <td><strong>${esc(r.merchant || "—")}</strong>
-        ${r.description && r.description !== r.merchant ? `<div class="muted">${esc(r.description)}</div>` : ""}
+        ${r.description && r.description !== r.merchant && r.description !== r.txtype ? `<div class="muted">${esc(r.description)}</div>` : ""}
         ${r.txtype ? `<div class="muted">${esc(r.txtype)}</div>` : ""}</td>
       <td class="amount">${fmt(r.amount)}</td>
       <td><select data-review-cat="${i}">

@@ -196,11 +196,11 @@ const Importers = {
         const signed = (am[1] === "+" ? 1 : -1) * parseFloat(am[3].replace(/,/g, ""));
         if (!(signed < 0)) continue; // money in / zero: not an expense row
         const merchant = by.merchant.sort((p, q) => p.x - q.x).map((i) => (i.str || "").trim())
-          .filter((x) => x && x !== "Confidential").join(" ").trim();
+          .filter((x) => x && x !== "Confidential" && x !== "保密").join(" ").trim();
         const type = by.type.map((i) => (i.str || "").trim()).filter(Boolean).join(" ");
         out.push({
           amount: Math.abs(signed), currency: am[2] || "HKD", category: "Other", platform: "alipay",
-          merchant, description: merchant || type,
+          merchant, description: merchant,
           expense_date: dm[3] + "-" + this._MONTHS[dm[2]] + "-" + dm[1].padStart(2, "0"),
           external_id: "alipayhk:" + txm[0], source: "alipayhk_pdf",
           txtype: type,
@@ -219,7 +219,8 @@ const Importers = {
       err.code = "pdf_missing";
       throw err;
     }
-    const pdf = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const opts = (typeof window !== "undefined" && window.__pdfjsOptions) || {};
+    const pdf = await lib.getDocument(Object.assign({}, opts, { data: new Uint8Array(buf) })).promise;
     const pages = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const page = await pdf.getPage(p);
