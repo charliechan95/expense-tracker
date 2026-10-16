@@ -66,6 +66,15 @@ function renderDashboard() {
 
   document.getElementById("dash-total").textContent = sym + fmt(total.total);
   document.getElementById("dash-count").textContent = total.count;
+  // Rows in currencies we cannot convert are excluded from the total above;
+  // surface them as their own per-currency figures so nothing is hidden.
+  const uncEl = document.getElementById("dash-unconverted");
+  if (uncEl) {
+    const unc = DB.unconvertedTotals(month);
+    uncEl.textContent = unc.length
+      ? t("dash_unconverted").replace("{list}", unc.map((u) => `${u.currency} ${fmt(u.total)}`).join(" · "))
+      : "";
+  }
   document.getElementById("dash-month-label").textContent =
     month ? t("dash_in_month").replace("{m}", month) : t("dash_all_time");
 
@@ -234,9 +243,13 @@ function renderExpenses() {
   const dispCcy = DB.getSettings().display_currency;
   document.getElementById("expense-rows").innerHTML = list.length
     ? list.map((e) => {
-      const shown = DB.toDisplay(e.amount, e.currency);
-      const orig = String(e.currency || "CNY").toUpperCase() !== dispCcy.toUpperCase()
+      // Unconvertible rows (e.g. USD from a restored backup) are shown in
+      // their own currency — never as a display-currency figure.
+      const conv = DB.canConvert(e.currency);
+      const orig = conv && String(e.currency || "CNY").toUpperCase() !== dispCcy.toUpperCase()
         ? ` <span class="muted">(${esc(e.currency)} ${fmt(e.amount)})</span>` : "";
+      const shown = conv ? sym + fmt(DB.toDisplay(e.amount, e.currency)) + orig
+                         : `${esc(e.currency)} ${fmt(e.amount)}`;
       return `<tr${e.cat_source === "unreviewed" ? ' class="needs-review"' : ""}>
         ${chip === "review" ? `<td class="bulk-col"><input type="checkbox" data-bulk="${e.id}"></td>` : ""}
         <td>${esc(e.expense_date)}</td>
@@ -244,7 +257,7 @@ function renderExpenses() {
           ${e.description ? `<div class="muted">${esc(e.description)}</div>` : ""}</td>
         <td>${catPill(e.category)}</td>
         <td>${esc(tPlat(e.platform) || e.platform)}</td>
-        <td class="amount">${sym}${fmt(shown)}${orig}</td>
+        <td class="amount">${shown}</td>
         <td class="row-actions">
           <button data-edit="${e.id}" title="${t("tt_edit")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4.2L16.6 4.2a2.1 2.1 0 0 1 3 3L8 18.8 4 20z"/><path d="M14.8 6l3.2 3.2"/></svg></button>
           <button data-del="${e.id}" title="${t("tt_delete")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
@@ -391,7 +404,9 @@ function startReview(platform, expenses) {
     platform,
     rows: expenses.map((exp) => {
       const p = Categorizer.propose(exp.merchant, exp.description);
-      const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id)));
+      // exp.dupe: pre-set by callers that do their own best-effort dedupe
+      // (screenshot rows carry no transaction number). Untouched otherwise.
+      const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id))) || !!exp.dupe;
       if (exp.external_id) seen.add(exp.external_id);
       return { ...exp, proposed: p.category, via: p.via,
                initial: p.category || "Other", checked: !dupe, dupe: !!dupe };
@@ -402,14 +417,55 @@ function startReview(platform, expenses) {
   document.getElementById("review-card").scrollIntoView({ behavior: "smooth" });
 }
 
-async function parseSelectedFile(fileOverride) {
+/* Lazy CDN loader: same pattern as the eager SheetJS script tag (CDN,
+   global check, honest "not loaded" error), but only fetched when needed
+   so the first page load stays light. */
+function loadScriptCDN(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("cdn"));
+    document.head.appendChild(s);
+  });
+}
+
+/* zip.js: handles plain AND password-protected Alipay packages (JSZip
+   cannot open encrypted zips, which is why it isn't used here). */
+async function ensureZipLib() {
+  if (typeof zip !== "undefined" && zip.ZipReader) return;
+  await loadScriptCDN("https://cdn.jsdelivr.net/npm/@zip.js/zip.js@2.23.0/dist/zip.min.js");
+  if (typeof zip === "undefined" || !zip.ZipReader) {
+    const err = new Error("zip library not loaded — check internet connection.");
+    err.code = "zip_missing";
+    throw err;
+  }
+}
+
+/* Tesseract.js: on-device OCR for the screenshot capture route. */
+async function ensureTesseract() {
+  if (typeof Tesseract !== "undefined" && Tesseract.recognize) return Tesseract;
+  await loadScriptCDN("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js");
+  if (typeof Tesseract === "undefined" || !Tesseract.recognize) {
+    const err = new Error("OCR library not loaded — check internet connection.");
+    err.code = "ocr_missing";
+    throw err;
+  }
+  return Tesseract;
+}
+
+let zipPendingFile = null;
+
+async function parseSelectedFile(fileOverride, zipCode) {
   const input = document.getElementById("f-file");
   const file = fileOverride || input.files[0];
   const out = document.getElementById("import-result");
   if (!file) { out.textContent = t("imp_choose_first"); return; }
   out.textContent = t("imp_parsing");
   try {
-    const { platform, expenses } = await Importers.parseFile(file);
+    if (file.name.toLowerCase().endsWith(".zip")) await ensureZipLib();
+    const { platform, expenses } = await Importers.parseFile(file, zipCode);
     if (!platform) {
       out.textContent = t("imp_no_detect");
       return;
@@ -421,12 +477,41 @@ async function parseSelectedFile(fileOverride) {
     out.textContent = "";
     startReview(platform, expenses);
   } catch (err) {
-    out.textContent = t("imp_failed") + (err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") : err.message);
+    if (err && err.code === "zip_locked") {
+      // Alipay's package needs the code from its delivery message.
+      zipPendingFile = file;
+      out.textContent = "";
+      const form = document.getElementById("zip-code-form");
+      if (form) {
+        form.style.display = "block";
+        const codeInput = document.getElementById("f-zip-code");
+        if (codeInput) { codeInput.value = ""; codeInput.focus(); }
+      }
+      return;
+    }
+    out.textContent = t("imp_failed") + (
+      err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") :
+      err && err.code === "zip_missing" ? t("imp_zip_missing") :
+      err && err.code === "zip_badcode" ? t("imp_zip_badcode") : err.message);
   } finally {
     // Always reset the input so choosing the same file again re-parses.
     input.value = "";
   }
 }
+
+/* Alipay package code prompt: generic wording, no assumed convention. */
+const btnZipOpen = document.getElementById("btn-zip-open");
+if (btnZipOpen) btnZipOpen.addEventListener("click", () => {
+  const code = (document.getElementById("f-zip-code") || {}).value || "";
+  document.getElementById("zip-code-form").style.display = "none";
+  if (zipPendingFile) parseSelectedFile(zipPendingFile, code.trim());
+  zipPendingFile = null;
+});
+const btnZipCancel = document.getElementById("btn-zip-cancel");
+if (btnZipCancel) btnZipCancel.addEventListener("click", () => {
+  document.getElementById("zip-code-form").style.display = "none";
+  zipPendingFile = null;
+});
 
 /* Single upload entry: pick a file, then press "Parse file" (or drop the
    file onto the card). Note: wrapped so the click Event never lands in
@@ -604,6 +689,70 @@ document.getElementById("btn-paste-parse").addEventListener("click", () => {
     out.textContent = t("imp_failed") + (err && err.message);
   }
 });
+
+/* ---- Screenshot capture import (HK wallets: no bill-file export) ----
+   The user picks the wallet shown, uploads screenshots of the in-app
+   transaction list (WeChat: 我 → 服务 → ··· → 交易记录）, and Tesseract.js
+   reads them ON-DEVICE — images never leave the browser. The OCR text
+   goes through Importers.parseShotText and the rows enter the SAME
+   review -> commit pipeline as file imports. */
+const SHOT_WALLETS = {
+  wechat_hk: { platform: "wechat", currency: "HKD" },
+  alipay_hk: { platform: "alipay", currency: "HKD" },
+  wechat: { platform: "wechat", currency: "CNY" },
+  alipay: { platform: "alipay", currency: "CNY" },
+};
+
+async function readScreenshots() {
+  const input = document.getElementById("f-shots");
+  const out = document.getElementById("shot-result");
+  const prog = document.getElementById("shot-progress");
+  const files = input.files;
+  if (!files || !files.length) { out.textContent = t("shot_empty"); return; }
+  const wallet = (document.getElementById("shot-wallet") || {}).value || "wechat_hk";
+  const map = SHOT_WALLETS[wallet] || SHOT_WALLETS.wechat_hk;
+  out.textContent = "";
+  try {
+    const Tess = await ensureTesseract();
+    let allText = "";
+    for (let i = 0; i < files.length; i++) {
+      prog.textContent = t("shot_reading").replace("{i}", String(i + 1)).replace("{n}", String(files.length));
+      const { data } = await Tess.recognize(files[i], "chi_tra+chi_sim+eng", {
+        logger: (m) => {
+          if (m && m.status === "recognizing text" && m.progress != null)
+            prog.textContent = t("shot_reading_pct").replace("{p}", String(Math.round(m.progress * 100)));
+        },
+      });
+      allText += "\n" + ((data && data.text) || "");
+    }
+    prog.textContent = "";
+    const rows = Importers.parseShotText(allText, wallet);
+    if (!rows.length) { out.textContent = t("shot_no_rows"); return; }
+    // Best-effort dedupe: screenshot rows have no transaction number, so
+    // match against identical date/amount/description/currency already stored.
+    const key = (r) => [r.expense_date, Number(r.amount).toFixed(2),
+      (r.merchant || "").trim(), (r.description || "").trim(), r.currency].join("|");
+    const stored = new Set(DB.list({ limit: 100000 }).map(key));
+    const seen = new Set();
+    let dupes = 0;
+    rows.forEach((r) => {
+      const k = key(r);
+      if (stored.has(k) || seen.has(k)) { r.dupe = true; dupes++; }
+      else seen.add(k);
+    });
+    out.textContent = dupes ? t("shot_dupes").replace("{n}", String(dupes)) : "";
+    startReview(map.platform, rows);
+  } catch (err) {
+    prog.textContent = "";
+    out.textContent = t("imp_failed") + (err && err.code === "ocr_missing" ? t("imp_ocr_missing") : err.message);
+  } finally {
+    input.value = "";
+  }
+}
+
+/* Guarded like everything else on this view. */
+const btnShotRead = document.getElementById("btn-shot-read");
+if (btnShotRead) btnShotRead.addEventListener("click", readScreenshots);
 
 /* Guarded: if index.html and app.js ever deploy out of step, a missing
    button must not stop the rest of the app from booting. */

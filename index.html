@@ -71,6 +71,7 @@
         <div class="card-num" id="dash-total">0.00</div>
         <div class="card-label"><span data-i18n="lbl_spent">Spent</span> <span id="dash-month-label"></span></div>
         <div class="delta" id="dash-delta"></div>
+        <div class="muted" id="dash-unconverted"></div>
       </div>
       <div class="card hero">
         <div class="card-num" id="dash-count">0</div>
@@ -178,18 +179,24 @@
           <li data-i18n-html="step_al_2">Tap <b>···</b> top-right → <b>开具交易流水证明</b></li>
           <li data-i18n-html="step_al_3">Choose <b>用于个人对账 (For Personal Reconciliation)</b>, pick dates</li>
           <li data-i18n-html="step_al_4">Wait for the message → download the file</li>
-          <li data-i18n-html="step_al_5">Upload the <b>.csv</b> / <b>.xlsx</b> below</li>
+          <li data-i18n-html="step_al_5">Upload the <b>.csv</b> / <b>.xlsx</b> / <b>.zip</b> below</li>
         </ol>
       </section>
     </div>
     <section class="card" id="upload-card">
       <h2 data-i18n="lbl_upload">Upload</h2>
       <div class="toolbar">
-        <input type="file" id="f-file" accept=".csv,.xlsx">
+        <input type="file" id="f-file" accept=".csv,.xlsx,.zip">
         <button id="btn-import" class="primary" data-i18n="btn_parse">Parse file</button>
       </div>
       <p class="muted" data-i18n="imp_drop_hint">…or drag &amp; drop a bill file here</p>
       <div id="import-result" class="muted"></div>
+      <div id="zip-code-form" style="display:none" class="toolbar">
+        <label><span data-i18n="zip_code_label">This package needs a code to open. Enter the code from Alipay's message:</span>
+          <input type="text" id="f-zip-code" inputmode="numeric" autocomplete="off"></label>
+        <button id="btn-zip-open" class="primary" data-i18n="zip_code_btn">Open package</button>
+        <button id="btn-zip-cancel" data-i18n="btn_cancel">Cancel</button>
+      </div>
     </section>
     <section class="card">
       <h2 data-i18n="hk_title">Hong Kong wallets</h2>
@@ -197,6 +204,24 @@
       <div class="toolbar">
         <button id="btn-hk-quickadd" data-i18n="btn_add_expense">Add expense</button>
       </div>
+    </section>
+    <section class="card">
+      <h2 data-i18n="shot_title">Screenshot capture</h2>
+      <p class="muted" data-i18n="shot_note">Screenshot your transaction list and read it here. Images are read on this device and never uploaded.</p>
+      <p class="muted" data-i18n="shot_nonum_note">Screenshots carry no transaction number.</p>
+      <label><span data-i18n="lbl_shot_wallet">Wallet shown in the screenshots</span>
+        <select id="shot-wallet">
+          <option value="wechat_hk" data-i18n="plat_wechat_hk">WeChat Pay HK</option>
+          <option value="alipay_hk" data-i18n="plat_alipay_hk">AlipayHK</option>
+          <option value="wechat" data-i18n="plat_wechat">WeChat Pay</option>
+          <option value="alipay" data-i18n="plat_alipay">Alipay</option>
+        </select></label>
+      <div class="toolbar">
+        <input type="file" id="f-shots" accept="image/*" multiple>
+        <button id="btn-shot-read" class="primary" data-i18n="btn_shot_read">Read screenshots</button>
+      </div>
+      <div id="shot-progress" class="muted"></div>
+      <div id="shot-result" class="muted"></div>
     </section>
     <section class="card">
       <h2 data-i18n="paste_title">Paste CSV text</h2>

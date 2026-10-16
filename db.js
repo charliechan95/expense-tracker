@@ -338,6 +338,16 @@ const DB = {
     this.markSyncDirty("settings", "upsert", "settings");
   },
 
+  /* The only convertible pair: CNY <-> HKD at the user's rate. A row in
+     any other currency must NEVER be folded into a display-currency
+     total (Charlie's rule: never mix currencies in a total). */
+  canConvert(currency) {
+    const s = this.getSettings();
+    const from = String(currency || "CNY").toUpperCase();
+    const to = String(s.display_currency || "CNY").toUpperCase();
+    return (from === "CNY" || from === "HKD") && (to === "CNY" || to === "HKD");
+  },
+
   toDisplay(amount, currency) {
     const s = this.getSettings();
     const from = String(currency || "CNY").toUpperCase();
@@ -348,7 +358,24 @@ const DB = {
     const rate = parseFloat(s.cny_to_hkd) || 1;
     if (from === "CNY" && to === "HKD") return this._toCents(amount * rate);
     if (from === "HKD" && to === "CNY") return this._toCents(amount / rate);
-    return this._toCents(amount);
+    // Unconvertible pair: contributes NOTHING to any total. Row display
+    // shows the raw amount in its own currency instead (see renderExpenses).
+    return this._toCents(0);
+  },
+
+  /* Rows that cannot be converted to the display currency, aggregated in
+     their own currencies so the dashboard can surface them honestly
+     instead of silently mixing them into the total. */
+  unconvertedTotals(month) {
+    const map = {};
+    for (const e of this._inMonth(this._read("exp_expenses", []), month)) {
+      if (this.canConvert(e.currency)) continue;
+      const c = String(e.currency || "").toUpperCase() || "?";
+      map[c] = map[c] || { currency: c, total: 0, count: 0 };
+      map[c].total += parseFloat(e.amount) || 0;
+      map[c].count++;
+    }
+    return Object.values(map).map((u) => ({ currency: u.currency, count: u.count, total: this._toCents(u.total) }));
   },
 
   _toCents(n) {
