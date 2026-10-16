@@ -236,6 +236,9 @@ function renderExpenses() {
       category: filters.category || null,
       month: filters.month || null,
       search: filters.q || null,
+      // Browsing all time must not silently stop at the default cap;
+      // a chosen month keeps the usual page size.
+      limit: filters.month ? 200 : 100000,
     });
   }
 
@@ -304,6 +307,13 @@ document.getElementById("bulk-apply").addEventListener("click", () => {
   const done = DB.bulkSetCategory(ids, cat);
   toast(t("bulk_done").replace("{n}", String(done)));
   renderAll();
+});
+
+// All-time browse: clear the month filter so every expense shows at once.
+document.getElementById("f-all-time").addEventListener("click", () => {
+  document.getElementById("f-month").value = "";
+  filters.month = "";
+  renderExpenses();
 });
 
 document.getElementById("f-apply").addEventListener("click", () => {
