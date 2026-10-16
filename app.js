@@ -403,7 +403,8 @@ function startReview(platform, expenses) {
   reviewBatch = {
     platform,
     rows: expenses.map((exp) => {
-      const p = Categorizer.propose(exp.merchant, exp.description);
+      const p = Categorizer.propose(exp.merchant,
+        ((exp.description || "") + " " + (exp.txtype || "")).trim());
       // exp.dupe: pre-set by callers that do their own best-effort dedupe
       // (screenshot rows carry no transaction number). Untouched otherwise.
       const dupe = (exp.external_id && (existing.has(exp.external_id) || seen.has(exp.external_id))) || !!exp.dupe;
@@ -455,6 +456,23 @@ async function ensureTesseract() {
   return Tesseract;
 }
 
+/* pdf.js (ESM build): reads AlipayHK statement PDFs on-device.
+   Stored on window.__pdfjsLib — the seam Importers._parsePdfBytes uses. */
+async function ensurePdfJs() {
+  if (window.__pdfjsLib && window.__pdfjsLib.getDocument) return window.__pdfjsLib;
+  try {
+    const lib = await import("https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.min.mjs");
+    lib.GlobalWorkerOptions.workerSrc =
+      "https://cdn.jsdelivr.net/npm/pdfjs-dist@4.2.67/build/pdf.worker.min.mjs";
+    window.__pdfjsLib = lib;
+    return lib;
+  } catch (e) {
+    const err = new Error("PDF library not loaded — check internet connection.");
+    err.code = "pdf_missing";
+    throw err;
+  }
+}
+
 let zipPendingFile = null;
 
 async function parseSelectedFile(fileOverride, zipCode) {
@@ -465,6 +483,7 @@ async function parseSelectedFile(fileOverride, zipCode) {
   out.textContent = t("imp_parsing");
   try {
     if (file.name.toLowerCase().endsWith(".zip")) await ensureZipLib();
+    if (file.name.toLowerCase().endsWith(".pdf")) await ensurePdfJs();
     const { platform, expenses } = await Importers.parseFile(file, zipCode);
     if (!platform) {
       out.textContent = t("imp_no_detect");
@@ -492,6 +511,7 @@ async function parseSelectedFile(fileOverride, zipCode) {
     out.textContent = t("imp_failed") + (
       err && err.code === "xlsx_missing" ? t("imp_xlsx_missing") :
       err && err.code === "zip_missing" ? t("imp_zip_missing") :
+      err && err.code === "pdf_missing" ? t("imp_pdf_missing") :
       err && err.code === "zip_badcode" ? t("imp_zip_badcode") : err.message);
   } finally {
     // Always reset the input so choosing the same file again re-parses.
@@ -547,7 +567,8 @@ function renderReview() {
       <td><input type="checkbox" data-review="${i}"${r.checked ? " checked" : ""}${r.dupe ? " disabled" : ""}></td>
       <td>${esc(r.expense_date)}</td>
       <td><strong>${esc(r.merchant || "—")}</strong>
-        ${r.description && r.description !== r.merchant ? `<div class="muted">${esc(r.description)}</div>` : ""}</td>
+        ${r.description && r.description !== r.merchant ? `<div class="muted">${esc(r.description)}</div>` : ""}
+        ${r.txtype ? `<div class="muted">${esc(r.txtype)}</div>` : ""}</td>
       <td class="amount">${fmt(r.amount)}</td>
       <td><select data-review-cat="${i}">
         ${CATEGORY_IDS.map((c) =>
@@ -931,6 +952,14 @@ function showAuthView() {
 
 /* Called by sb.js when the auth state changes. */
 function onCloudAuthChange(user, wasIn) {
+  // A password-recovery landing carries a session, but the user must set
+  // a new password before entering the app — never auto-enter here.
+  if (Cloud.recoveryPending && Cloud.recoveryPending()) {
+    showAuthView();
+    showResetBlock();
+    renderSyncStatus();
+    return;
+  }
   if (user && !wasIn) {
     // Guest → sign-in: the guest's queued edits go up through the normal
     // sync path below. Say so explicitly, once — never a silent merge.
@@ -1055,6 +1084,75 @@ async function handleAuth(mode) {
 
 document.getElementById("btn-signin").addEventListener("click", () => handleAuth("signin"));
 document.getElementById("btn-signup").addEventListener("click", () => handleAuth("signup"));
+
+/* Auth message box (shared by sign-in errors and the reset flow). */
+function authMsg(text) {
+  const err = document.getElementById("auth-error");
+  err.textContent = text;
+  err.style.display = "block";
+}
+
+function showResetBlock() {
+  const block = document.getElementById("auth-reset-block");
+  if (block) block.style.display = "block";
+}
+
+/* Continue with Google. If the provider isn't enabled in the backend
+   yet, say so plainly instead of leaving the user on a dead screen. */
+document.getElementById("btn-google").addEventListener("click", async () => {
+  try {
+    await Cloud.signInWithGoogle();
+    // Success navigates away to Google; the session returns via the
+    // redirect and onCloudAuthChange takes it from there.
+  } catch (e) {
+    const m = (e && e.message) || "";
+    authMsg(/provider is not enabled|unsupported provider/i.test(m) ? t("auth_google_off") : m);
+  }
+});
+
+/* Forgot password: email a reset link for the address typed above. */
+document.getElementById("btn-magic").addEventListener("click", async () => {
+  const email = document.getElementById("auth-email").value.trim();
+  if (!email) { authMsg(t("auth_email_needed")); return; }
+  try {
+    await Cloud.signInWithMagicLink(email);
+    authMsg(t("auth_magic_sent"));
+  } catch (e) { authMsg(friendlyAuthError(e, "signin")); }
+});
+document.getElementById("btn-forgot").addEventListener("click", async () => {
+  const email = document.getElementById("auth-email").value.trim();
+  if (!email) {
+    authMsg(t("auth_email_first"));
+    return;
+  }
+  try {
+    await Cloud.resetPassword(email);
+    authMsg(t("auth_reset_sent"));
+  } catch (e) {
+    authMsg(friendlyAuthError(e, "signin"));
+  }
+});
+
+/* Set-new-password submit (recovery landing). */
+document.getElementById("btn-setpw").addEventListener("click", async () => {
+  const pw = document.getElementById("auth-newpw").value;
+  if (!pw || pw.length < 6) {
+    authMsg(t("auth_err_pw"));
+    return;
+  }
+  try {
+    await Cloud.updatePassword(pw);
+    Cloud.clearRecovery();
+    document.getElementById("auth-reset-block").style.display = "none";
+    document.getElementById("auth-error").style.display = "none";
+    showApp();
+    toast(t("auth_pw_updated"));
+    Sync.syncNow();
+    renderSyncStatus();
+  } catch (e) {
+    authMsg(friendlyAuthError(e, "signin"));
+  }
+});
 document.getElementById("btn-signout").addEventListener("click", async () => {
   if (Cloud.guest() && !Cloud.signedIn()) {
     // Exiting guest mode: same guarantee as sign-out — local data + queue
@@ -1113,7 +1211,11 @@ async function boot() {
   renderAll();
   const backend = await Cloud.init();
   renderSyncStatus();
-  if (backend && !Cloud.signedIn() && !Cloud.guest()) {
+  if (backend && Cloud.recoveryPending && Cloud.recoveryPending()) {
+    // Arrived from a password-reset email: set a new password first.
+    showAuthView();
+    showResetBlock();
+  } else if (backend && !Cloud.signedIn() && !Cloud.guest()) {
     showAuthView();
   } else {
     showApp();

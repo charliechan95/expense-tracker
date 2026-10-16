@@ -8,6 +8,7 @@ const Importers = {
   WECHAT_EXPENSE: ["支出", "Expense"],
   WECHAT_OK_STATUS: ["支付成功", "已支付", "交易成功", "完成", "已转账", "对方已收钱", ""],
   WECHAT_REFUND: ["退款", "退还", "Refund"],
+  WECHAT_TYPE_EXPENSE: ["商户消费", "扫二维码付款", "二维码付款", "付款", "消费"],
   ALIPAY_ID: "交易订单号",
 
   _findHeader(rows, marker) {
@@ -55,11 +56,20 @@ const Importers = {
     if (hi < 0) return [];
     const header = rows[hi];
     const out = [];
+    const hasDirCol = header.some((h) => (h || "").includes("收/支"));
     for (const row of rows.slice(hi + 1)) {
       if (!row.some((c) => (c || "").trim())) continue;
+      const txtype0 = this._col(row, header, "交易类型");
       const direction = this._col(row, header, "收/支");
-      if (!this.WECHAT_EXPENSE.some((m) => direction.includes(m))) continue;
-      const status = this._col(row, header, "当前状态");
+      if (hasDirCol) {
+        if (!this.WECHAT_EXPENSE.some((m) => direction.includes(m))) continue;
+      } else if (!this.WECHAT_TYPE_EXPENSE.some((m) => txtype0.includes(m))) {
+        // No 收/支 column in this export variant: only types that are
+        // payments-out by construction (merchant / QR payments). Anything
+        // ambiguous (red packets, transfers) is skipped, never guessed.
+        continue;
+      }
+      const status = this._col(row, header, "当前状态") || this._col(row, header, "交易状态") || this._col(row, header, "状态");
       if (status && !this.WECHAT_OK_STATUS.some((s) => status.includes(s))) continue;
       if (this.WECHAT_REFUND.some((m) => status.includes(m))) continue;
       const txid = this._col(row, header, this.WECHAT_ID);
@@ -76,6 +86,7 @@ const Importers = {
         amount, currency: "CNY", category: "Other", platform: "wechat",
         merchant, description: product, expense_date: date,
         external_id: "wechat:" + txid, source: "wechat_import",
+        txtype: txtype0,
       });
     }
     return out;
@@ -109,6 +120,7 @@ const Importers = {
         amount, currency: "CNY", category: "Other", platform: "alipay",
         merchant, description: product, expense_date: date,
         external_id: "alipay:" + txid, source: "alipay_import",
+        txtype: this._col(row, header, "交易类型") || this._col(row, header, "类型"),
       });
     }
     return out;
@@ -131,8 +143,95 @@ const Importers = {
     return this.detectAndParseRows(this._parseCSV(t));
   },
 
+  /* AlipayHK Transaction Statement (PDF). pdf.js supplies positioned
+     text items per page ({str, x, y}); this parser is pure over those
+     items so it is testable without a real PDF. Column bands are read
+     from the statement's own header row. A date item starts a row;
+     items up to 16 units below it on the page belong to it. Negative
+     amounts are payments out (expense candidates); positive amounts
+     are money in and are skipped (same policy as bill imports). The
+     transaction number dedupes re-imports of overlapping statements. */
+  _MONTHS: { Jan: "01", Feb: "02", Mar: "03", Apr: "04", May: "05", Jun: "06", Jul: "07", Aug: "08", Sep: "09", Oct: "10", Nov: "11", Dec: "12" },
+
+  parseAlipayHkItems(pages) {
+    const all = [];
+    (pages || []).forEach((items) => (items || []).forEach((it) => all.push(it.str || "")));
+    const joined = all.join(" ");
+    if (!joined.includes("Transaction Statement") || !joined.includes("ALIPAY FINANCIAL SERVICES (HK)")) return null;
+    let bands = null;
+    for (const items of pages || []) {
+      // The header is a ROW: all five labels share one y level. (The
+      // summary block also prints "Transaction Type" as a lone label —
+      // matching labels independently would pick that one and break
+      // every band.)
+      for (const d of items || []) {
+        if (!(d.str || "").trim().startsWith("Transaction Date")) continue;
+        const row = (items || []).filter((it) => Math.abs(it.y - d.y) <= 2);
+        const at = (label) => row.find((it) => (it.str || "").trim().startsWith(label));
+        const n = at("Transaction Number"), ty = at("Transaction Type"),
+              m = at("Recipient / Merchant"), a = at("Transaction Amount");
+        if (n && ty && m && a) { bands = { d: d.x, n: n.x, ty: ty.x, m: m.x, a: a.x, y: d.y }; break; }
+      }
+      if (bands) break;
+    }
+    if (!bands) return null;
+    const bandOf = (x) => x < bands.n ? "date" : x < bands.ty ? "num" : x < bands.m ? "type" : x < bands.a ? "merchant" : "amount";
+    const dateRe = /^(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/;
+    const out = [];
+    for (const items of pages || []) {
+      const starts = (items || []).filter((it) => it.y < bands.y - 2 && bandOf(it.x) === "date" && dateRe.test((it.str || "").trim()));
+      for (const st of starts) {
+        const dm = (st.str || "").trim().match(dateRe);
+        const rowItems = (items || []).filter((it) => it !== st && it.y <= st.y + 2 && it.y >= st.y - 16);
+        const by = { num: [], type: [], merchant: [], amount: [] };
+        for (const it of rowItems) {
+          const b = bandOf(it.x);
+          if (b in by) by[b].push(it);
+        }
+        const txm = by.num.map((i) => i.str).join(" ").match(/\d{16,}/);
+        if (!txm) continue;
+        const amtText = by.amount.sort((p, q) => p.x - q.x).map((i) => i.str).join(" ");
+        const am = amtText.match(/([+\-])?\s*(HKD|CNY|USD|EUR|GBP|JPY|MOP)?\s*([\d,]+\.\d{2})/);
+        if (!am) continue;
+        const signed = (am[1] === "+" ? 1 : -1) * parseFloat(am[3].replace(/,/g, ""));
+        if (!(signed < 0)) continue; // money in / zero: not an expense row
+        const merchant = by.merchant.sort((p, q) => p.x - q.x).map((i) => (i.str || "").trim())
+          .filter((x) => x && x !== "Confidential").join(" ").trim();
+        const type = by.type.map((i) => (i.str || "").trim()).filter(Boolean).join(" ");
+        out.push({
+          amount: Math.abs(signed), currency: am[2] || "HKD", category: "Other", platform: "alipay",
+          merchant, description: merchant || type,
+          expense_date: dm[3] + "-" + this._MONTHS[dm[2]] + "-" + dm[1].padStart(2, "0"),
+          external_id: "alipayhk:" + txm[0], source: "alipayhk_pdf",
+          txtype: type,
+        });
+      }
+    }
+    return { platform: "alipay", expenses: out };
+  },
+
+  /* pdf.js is lazy-loaded by the app (window.__pdfjsLib) — never fetched
+     unless the user actually picks a PDF. */
+  async _parsePdfBytes(buf) {
+    const lib = (typeof window !== "undefined" && window.__pdfjsLib) || null;
+    if (!lib || !lib.getDocument) {
+      const err = new Error("PDF library not loaded — check internet connection.");
+      err.code = "pdf_missing";
+      throw err;
+    }
+    const pdf = await lib.getDocument({ data: new Uint8Array(buf) }).promise;
+    const pages = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent();
+      pages.push((tc.items || []).map((it) => ({ str: it.str, x: it.transform[4], y: it.transform[5] })));
+    }
+    return this.parseAlipayHkItems(pages) || { platform: null, expenses: [] };
+  },
+
   async parseFile(file, password) {
     const name = file.name.toLowerCase();
+    if (name.endsWith(".pdf")) return this._parsePdfBytes(await file.arrayBuffer());
     if (name.endsWith(".zip")) return this._parseZip(file, password);
     if (name.endsWith(".xlsx")) {
       // SheetJS from CDN
