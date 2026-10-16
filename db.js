@@ -275,6 +275,21 @@ const DB = {
     return n;
   },
 
+  bulkRemove(ids) {
+    const idset = new Set(ids.map(String));
+    const list = this._read("exp_expenses", []);
+    const kept = [];
+    let n = 0;
+    for (const e of list) {
+      if (idset.has(String(e.id))) {
+        n++;
+        this.markSyncDirty("expenses", "delete", e.id, { cloud_id: e.cloud_id || null });
+      } else kept.push(e);
+    }
+    if (n) this._write("exp_expenses", kept);
+    return n;
+  },
+
   getMerchantMemory() {
     return this._read("exp_merchant_memory", {});
   },

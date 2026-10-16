@@ -199,6 +199,11 @@ h2 {
 }
 .tbl tbody tr:last-child td { border-bottom: none; }
 .tbl tbody tr:hover td { background: var(--surface-warm); }
+.tbl tbody tr.day-row td { background: var(--surface-warm); font-weight: 600; }
+.day-total { float: right; }
+.cat-inline { display: none; }
+#expense-summary { margin: 0.4rem 0 0.6rem; }
+#exp-more { margin-top: 0.7rem; }
 .amount { font-variant-numeric: tabular-nums; text-align: right; font-weight: 600; }
 .row-actions { white-space: nowrap; text-align: right; }
 .row-actions button {
@@ -441,6 +446,7 @@ body.signed-out #fab { display: none; }
   .cat-name { min-width: 0; }
   .cat-bar { display: none; }
   .tbl th:nth-child(4), .tbl td:nth-child(4) { display: none; }
+  .cat-inline { display: block; margin-top: 0.3rem; }
   .tbl th, .tbl td { padding: 0.65rem 0.45rem; }
   #fab { right: 1rem; bottom: 1rem; }
 }

@@ -158,6 +158,7 @@ function renderDashboard() {
     row.addEventListener("click", () => {
       document.getElementById("f-category").value = row.dataset.cat;
       filters.category = row.dataset.cat;
+      expReveal = 200;
       setChip("all");
       switchTab("expenses");
       renderExpenses();
@@ -195,19 +196,26 @@ document.getElementById("budget-month").addEventListener("change", renderBudgets
 /* ---- Expenses list ----------------------------------------------------------- */
 const filters = { q: "", platform: "", category: "", month: "" };
 let chip = "all";
+let expReveal = 200;        // rows rendered before "Show more" (long lists)
+let lastExpenseList = [];   // the list as currently filtered (CSV export)
 
 function setChip(name) {
   chip = name;
+  expReveal = 200;
   document.querySelectorAll("#expense-chips .chip").forEach((c) =>
     c.classList.toggle("active", c.dataset.chip === name));
-  document.getElementById("bulk-bar").style.display = name === "review" ? "flex" : "none";
+  // Bulk selection works in both chips now: the bar stays pinned in
+  // Needs review; in the main list it appears once rows are ticked.
+  document.getElementById("bulk-bar").style.display =
+    name === "review" || document.querySelectorAll("[data-bulk]:checked").length ? "flex" : "none";
   document.querySelectorAll(".bulk-col").forEach((th) => {
-    th.style.display = name === "review" ? "" : "none";
+    th.style.display = "";
   });
 }
 document.querySelectorAll("#expense-chips .chip").forEach((c) => {
   c.addEventListener("click", () => { setChip(c.dataset.chip); renderExpenses(); });
 });
+setChip("all");
 
 function catPill(category) {
   const m = catMeta(category);
@@ -244,8 +252,40 @@ function renderExpenses() {
 
   const sym = DB.displaySymbol();
   const dispCcy = DB.getSettings().display_currency;
-  document.getElementById("expense-rows").innerHTML = list.length
-    ? list.map((e) => {
+  lastExpenseList = list;
+
+  // Totals for exactly what is being browsed (current chip + filters):
+  // convertible rows fold into the display currency like the dashboard;
+  // anything else is totalled in its own currency, never mixed in.
+  const totalsOf = (rows) => {
+    let disp = 0, hasDisp = false;
+    const own = new Map();
+    for (const e of rows) {
+      if (DB.canConvert(e.currency)) { disp += DB.toDisplay(e.amount, e.currency); hasDisp = true; }
+      else own.set(e.currency, (own.get(e.currency) || 0) + (parseFloat(e.amount) || 0));
+    }
+    const parts = [];
+    if (hasDisp) parts.push(sym + fmt(disp));
+    for (const [c, v] of own) parts.push(`${c} ${fmt(v)}`);
+    return parts.join(" · ");
+  };
+  const byDay = new Map();
+  for (const e of list) {
+    const d = e.expense_date || "";
+    if (!byDay.has(d)) byDay.set(d, []);
+    byDay.get(d).push(e);
+  }
+  const summaryEl = document.getElementById("expense-summary");
+  if (summaryEl) {
+    let s = t("exp_items").replace("{n}", String(list.length));
+    const tt = totalsOf(list);
+    if (tt) s += " · " + t("exp_total").replace("{a}", tt);
+    if (list.length > expReveal)
+      s += " · " + t("exp_showing").replace("{a}", String(expReveal)).replace("{b}", String(list.length));
+    summaryEl.textContent = s;
+  }
+
+  const rowHtml = (e) => {
       // Unconvertible rows (e.g. USD from a restored backup) are shown in
       // their own currency — never as a display-currency figure.
       const conv = DB.canConvert(e.currency);
@@ -253,11 +293,13 @@ function renderExpenses() {
         ? ` <span class="muted">(${esc(e.currency)} ${fmt(e.amount)})</span>` : "";
       const shown = conv ? sym + fmt(DB.toDisplay(e.amount, e.currency)) + orig
                          : `${esc(e.currency)} ${fmt(e.amount)}`;
+      const headline = e.merchant || e.description || "—";
       return `<tr${e.cat_source === "unreviewed" ? ' class="needs-review"' : ""}>
-        ${chip === "review" ? `<td class="bulk-col"><input type="checkbox" data-bulk="${e.id}"></td>` : ""}
+        <td class="bulk-col"><input type="checkbox" data-bulk="${e.id}"></td>
         <td>${esc(e.expense_date)}</td>
-        <td><strong>${esc(e.merchant || "—")}</strong>
-          ${e.description ? `<div class="muted">${esc(e.description)}</div>` : ""}</td>
+        <td><strong>${esc(headline)}</strong>
+          ${e.description && e.description !== headline ? `<div class="muted">${esc(e.description)}</div>` : ""}
+          <div class="cat-inline">${catPill(e.category)}</div></td>
         <td>${catPill(e.category)}</td>
         <td>${esc(tPlat(e.platform) || e.platform)}</td>
         <td class="amount">${shown}</td>
@@ -266,8 +308,28 @@ function renderExpenses() {
           <button data-del="${e.id}" title="${t("tt_delete")}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7"/><path d="M6.8 7l.9 12.2a1.5 1.5 0 0 0 1.5 1.4h5.6a1.5 1.5 0 0 0 1.5-1.4L17.2 7"/><path d="M10 11.2v5.4M14 11.2v5.4"/></svg></button>
         </td>
       </tr>`;
-    }).join("")
+  };
+  // Day-grouped rendering: a header row per date with that day's total;
+  // long lists render in chunks behind "Show more" so all-time browsing
+  // stays light however much history there is.
+  let html = "";
+  let rendered = 0;
+  let lastDay = null;
+  for (const e of list) {
+    if (rendered >= expReveal) break;
+    const day = e.expense_date || "";
+    if (day !== lastDay) {
+      lastDay = day;
+      html += `<tr class="day-row"><td colspan="7"><span>${esc(day)}</span><span class="day-total">${esc(totalsOf(byDay.get(day) || []))}</span></td></tr>`;
+    }
+    html += rowHtml(e);
+    rendered++;
+  }
+  document.getElementById("expense-rows").innerHTML = list.length
+    ? html
     : `<tr><td colspan="7" class="muted">${chip === "review" ? t("review_empty") : t("exp_empty")}</td></tr>`;
+  const moreBtn = document.getElementById("exp-more");
+  if (moreBtn) moreBtn.style.display = list.length > rendered ? "" : "none";
 
   document.querySelectorAll("[data-del]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -297,6 +359,8 @@ function renderExpenses() {
 
 function updateBulkCount() {
   const n = document.querySelectorAll("[data-bulk]:checked").length;
+  if (chip !== "review")
+    document.getElementById("bulk-bar").style.display = n ? "flex" : "none";
   document.getElementById("bulk-count").textContent =
     t("bulk_selected").replace("{n}", String(n));
 }
@@ -308,11 +372,24 @@ document.getElementById("bulk-apply").addEventListener("click", () => {
   toast(t("bulk_done").replace("{n}", String(done)));
   renderAll();
 });
+document.getElementById("bulk-delete").addEventListener("click", () => {
+  const ids = [...document.querySelectorAll("[data-bulk]:checked")].map((cb) => cb.dataset.bulk);
+  if (!ids.length) return;
+  if (!confirm(t("bulk_del_confirm").replace("{n}", String(ids.length)))) return;
+  const done = DB.bulkRemove(ids);
+  toast(t("bulk_deleted").replace("{n}", String(done)));
+  renderAll();
+});
+document.getElementById("exp-more").addEventListener("click", () => {
+  expReveal += 200;
+  renderExpenses();
+});
 
 // All-time browse: clear the month filter so every expense shows at once.
 document.getElementById("f-all-time").addEventListener("click", () => {
   document.getElementById("f-month").value = "";
   filters.month = "";
+  expReveal = 200;
   renderExpenses();
 });
 
@@ -321,7 +398,54 @@ document.getElementById("f-apply").addEventListener("click", () => {
   filters.platform = document.getElementById("f-platform").value;
   filters.category = document.getElementById("f-category").value;
   filters.month = document.getElementById("f-month").value;
+  expReveal = 200;
   renderExpenses();
+});
+
+// Filters also apply as you type/change — no need to hunt for the button.
+let qTimer = null;
+document.getElementById("f-q").addEventListener("input", (ev) => {
+  clearTimeout(qTimer);
+  qTimer = setTimeout(() => {
+    filters.q = ev.target.value.trim();
+    expReveal = 200;
+    renderExpenses();
+  }, 180);
+});
+for (const [id, key] of [["f-platform", "platform"], ["f-category", "category"], ["f-month", "month"]]) {
+  document.getElementById(id).addEventListener("change", (ev) => {
+    filters[key] = ev.target.value;
+    expReveal = 200;
+    renderExpenses();
+  });
+}
+document.getElementById("f-clear").addEventListener("click", () => {
+  for (const id of ["f-q", "f-platform", "f-category", "f-month"])
+    document.getElementById(id).value = "";
+  filters.q = ""; filters.platform = ""; filters.category = ""; filters.month = "";
+  expReveal = 200;
+  renderExpenses();
+});
+
+// CSV export of exactly the list being browsed (raw amounts + currency —
+// the form an accountant wants; the JSON backup stays the restore path).
+document.getElementById("btn-export-csv").addEventListener("click", () => {
+  const cell = (v) => {
+    v = String(v == null ? "" : v);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  };
+  const lines = [["Date", "Merchant", "Description", "Category", "Platform", "Amount", "Currency"].join(",")];
+  for (const e of lastExpenseList) {
+    lines.push([e.expense_date || "", e.merchant || "", e.description || "",
+      e.category || "", e.platform || "", Number(e.amount || 0).toFixed(2),
+      e.currency || ""].map(cell).join(","));
+  }
+  const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "expenses-export.csv";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 });
 
 /* ---- Expense dialog (add + edit) ---------------------------------------------- */

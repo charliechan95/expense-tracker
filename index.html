@@ -124,14 +124,18 @@
         <input type="month" id="f-month">
         <button id="f-all-time" data-i18n="opt_all_time">All time</button>
         <button id="f-apply" data-i18n="btn_filter">Filter</button>
+        <button id="f-clear" data-i18n="btn_clear_filters">Clear filters</button>
       </div>
+      <button id="btn-export-csv" data-i18n="btn_export_csv">Export CSV</button>
       <button id="btn-new-expense" class="primary">+ <span data-i18n="btn_add_expense">Add expense</span></button>
     </div>
     <div id="bulk-bar" class="bulk-bar" style="display:none">
       <span id="bulk-count">0 selected</span>
       <select id="bulk-cat"></select>
       <button id="bulk-apply" class="primary" data-i18n="btn_apply_cat">Apply category</button>
+      <button id="bulk-delete" data-i18n="bulk_delete">Delete selected</button>
     </div>
+    <p class="muted" id="expense-summary"></p>
     <table class="tbl">
       <thead><tr>
         <th class="bulk-col" style="display:none"><input type="checkbox" id="bulk-all"></th>
@@ -140,6 +144,7 @@
       </tr></thead>
       <tbody id="expense-rows"></tbody>
     </table>
+    <button id="exp-more" style="display:none" data-i18n="btn_show_more">Show more</button>
   </section>
 
   <!-- Budgets -->
