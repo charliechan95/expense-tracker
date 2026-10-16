@@ -171,7 +171,11 @@ const DB = {
       map[c].total += this._disp(e);
       map[c].n++;
     }
-    return Object.values(map).sort((a, b) => b.total - a.total);
+    const out = Object.values(map).sort((a, b) => b.total - a.total);
+    // Rows show cents-rounded values; round the summed total the same way
+    // so the rows always add up to the total.
+    for (const r of out) r.total = this._toCents(r.total);
+    return out;
   },
 
   byPlatform(month) {
@@ -182,7 +186,9 @@ const DB = {
       map[p].total += this._disp(e);
       map[p].n++;
     }
-    return Object.values(map).sort((a, b) => b.total - a.total);
+    const out = Object.values(map).sort((a, b) => b.total - a.total);
+    for (const r of out) r.total = this._toCents(r.total);
+    return out;
   },
 
   monthlyTotals(limit = 12) {
@@ -194,10 +200,12 @@ const DB = {
       map[m].total += this._disp(e);
       map[m].n++;
     }
-    return Object.values(map)
+    const out = Object.values(map)
       .sort((a, b) => b.month.localeCompare(a.month))
       .slice(0, limit)
       .reverse();
+    for (const r of out) r.total = this._toCents(r.total);
+    return out;
   },
 
   grandTotal(month) {
@@ -206,7 +214,7 @@ const DB = {
       total += this._disp(e);
       n++;
     }
-    return { total, count: n };
+    return { total: this._toCents(total), count: n };
   },
 
   months() {
@@ -334,11 +342,17 @@ const DB = {
     const s = this.getSettings();
     const from = String(currency || "CNY").toUpperCase();
     const to = String(s.display_currency || "CNY").toUpperCase();
-    if (from === to) return amount;
+    // Rows and totals both go through here: always round to cents so a
+    // converted row shows exactly what the totals sum up.
+    if (from === to) return this._toCents(amount);
     const rate = parseFloat(s.cny_to_hkd) || 1;
-    if (from === "CNY" && to === "HKD") return amount * rate;
-    if (from === "HKD" && to === "CNY") return amount / rate;
-    return amount;
+    if (from === "CNY" && to === "HKD") return this._toCents(amount * rate);
+    if (from === "HKD" && to === "CNY") return this._toCents(amount / rate);
+    return this._toCents(amount);
+  },
+
+  _toCents(n) {
+    return Math.round((parseFloat(n) || 0) * 100) / 100;
   },
 
   displaySymbol() {
@@ -355,13 +369,14 @@ const DB = {
   exportAll() {
     return {
       app: "expense-tracker",
-      version: 2,
+      version: 3,
       exported_at: this.nowIso(),
       expenses: this._read("exp_expenses", []),
       merchant_memory: this.getMerchantMemory(),
       user_rules: this.getUserRules(),
       budgets: this._read("exp_budgets", {}),
       settings: this.getSettings(),
+      import_batches: this.importBatches(),
     };
   },
 
@@ -376,11 +391,24 @@ const DB = {
     this._write("exp_user_rules", data.user_rules || []);
     this._write("exp_budgets", data.budgets || {});
     if (data.settings) this._write("exp_settings", data.settings);
+    this._write("exp_import_batches", data.import_batches || []);
     const maxId = data.expenses.reduce((m, e) => Math.max(m, parseInt(e.id, 10) || 0), 0);
     storage.setItem("exp_seq", String(maxId));
     // Restored data needs a full push on next sync.
     storage.setItem("exp_sync_reseed", "1");
     if (typeof Sync !== "undefined") Sync.schedule();
+  },
+
+  /* Remove every local app-data key (used by "Delete all data" and by
+     sign-out). Cloud rows are never touched here. The guest-mode flag
+     (exp_guest) is session state and is cleared separately. */
+  wipeLocal() {
+    for (const k of ["exp_expenses", "exp_merchant_memory", "exp_user_rules",
+                     "exp_budgets", "exp_settings", "exp_seq", "exp_migrated_v2",
+                     "exp_import_batches", "exp_sync_queue", "exp_last_pull",
+                     "exp_sync_reseed"]) {
+      storage.removeItem(k);
+    }
   },
 
   /* One-time: old rows (v1) have no cat_source — treat as user-confirmed

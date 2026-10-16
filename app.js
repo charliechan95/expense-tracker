@@ -738,11 +738,7 @@ document.getElementById("btn-wipe").addEventListener("click", async () => {
   if (Cloud.signedIn()) {
     try { await Sync.wipeCloud(); } catch (e) { toast(t("cloud_del_failed") + e.message); return; }
   }
-  for (const k of ["exp_expenses", "exp_merchant_memory", "exp_user_rules",
-                   "exp_budgets", "exp_settings", "exp_seq", "exp_migrated_v2",
-                   "exp_sync_queue", "exp_last_pull", "exp_sync_reseed"]) {
-    storage.removeItem(k);
-  }
+  DB.wipeLocal();
   renderAll();
   toast(t("wiped"));
 });
@@ -787,10 +783,20 @@ function showAuthView() {
 /* Called by sb.js when the auth state changes. */
 function onCloudAuthChange(user, wasIn) {
   if (user && !wasIn) {
+    // Guest → sign-in: the guest's queued edits go up through the normal
+    // sync path below. Say so explicitly, once — never a silent merge.
+    const wasGuest = Cloud.guest();
+    const hadGuestData = wasGuest &&
+      (DB.list({}).length > 0 || DB._syncQueue().length > 0);
+    Cloud.exitGuest();
     showApp();
-    toast(t("signed_in"));
+    toast(hadGuestData ? t("guest_merged") : t("signed_in"));
     Sync.syncNow();
   } else if (!user && wasIn) {
+    // Sign-out must not leak data into the next account on this browser:
+    // clear all local data + the pending sync queue (cloud untouched).
+    DB.wipeLocal();
+    Cloud.exitGuest();
     showAuthView();
     toast(t("signed_out"));
   }
@@ -810,8 +816,16 @@ function renderSyncStatus() {
       label = t("sync_lib");
       det = t("sync_det_lib");
     } else if (!Cloud.signedIn()) {
-      label = t("sync_out");
-      det = t("sync_det_out");
+      if (Cloud.guest()) {
+        // Guest mode: local only, sync disabled — the pill + chip below are
+        // the persistent visible indicator, and Sign out exits guest mode.
+        showSignout = true;
+        label = t("guest_badge");
+        det = t("guest_det");
+      } else {
+        label = t("sync_out");
+        det = t("sync_det_out");
+      }
     } else {
       showSignout = true;
       const email = (Cloud.user() && Cloud.user().email) || "";
@@ -831,13 +845,26 @@ function renderSyncStatus() {
   pill.className = "status-pill " + cls;
   detail.textContent = det;
   signout.style.display = showSignout ? "" : "none";
+  // In guest mode the "Sync now" button is meaningless (sync is off) —
+  // offer "Sign in to sync" instead.
+  const isGuest = Cloud.configured() && Cloud.guest() && !Cloud.signedIn();
+  const syncnow = document.getElementById("btn-sync-now");
+  if (syncnow) syncnow.style.display = isGuest ? "none" : "";
+  const gsignin = document.getElementById("btn-guest-signin");
+  if (gsignin) gsignin.style.display = isGuest ? "" : "none";
   const chip = document.getElementById("acct-chip");
   if (chip) {
     if (showSignout) {
-      const email = (Cloud.user() && Cloud.user().email) || "?";
-      chip.hidden = false;
-      chip.textContent = email.trim().charAt(0).toUpperCase() || "?";
-      chip.title = t("acct_title").replace("{email}", email);
+      if (isGuest) {
+        chip.hidden = false;
+        chip.textContent = t("guest_chip");
+        chip.title = t("guest_chip_title");
+      } else {
+        const email = (Cloud.user() && Cloud.user().email) || "?";
+        chip.hidden = false;
+        chip.textContent = email.trim().charAt(0).toUpperCase() || "?";
+        chip.title = t("acct_title").replace("{email}", email);
+      }
     } else {
       chip.hidden = true;
     }
@@ -880,7 +907,31 @@ async function handleAuth(mode) {
 document.getElementById("btn-signin").addEventListener("click", () => handleAuth("signin"));
 document.getElementById("btn-signup").addEventListener("click", () => handleAuth("signup"));
 document.getElementById("btn-signout").addEventListener("click", async () => {
+  if (Cloud.guest() && !Cloud.signedIn()) {
+    // Exiting guest mode: same guarantee as sign-out — local data + queue
+    // cleared, back to the auth screen (cloud untouched).
+    DB.wipeLocal();
+    Cloud.exitGuest();
+    showAuthView();
+    toast(t("signed_out"));
+    renderSyncStatus();
+    return;
+  }
   await Cloud.signOut();
+});
+/* Auth screen: skip the sign-in wall, use the app with local data only. */
+document.getElementById("btn-guest").addEventListener("click", () => {
+  Cloud.enterGuest();
+  showApp();
+  renderAll();
+  renderSyncStatus();
+  toast(t("guest_welcome"));
+});
+/* Settings (guest mode): go to the auth screen to sign in WITHOUT clearing
+   the guest's local data, so it can merge into their account. */
+document.getElementById("btn-guest-signin").addEventListener("click", () => {
+  showAuthView();
+  renderSyncStatus();
 });
 document.getElementById("btn-sync-now").addEventListener("click", () => {
   if (!Cloud.signedIn()) {
@@ -913,7 +964,7 @@ async function boot() {
   renderAll();
   const backend = await Cloud.init();
   renderSyncStatus();
-  if (backend && !Cloud.signedIn()) {
+  if (backend && !Cloud.signedIn() && !Cloud.guest()) {
     showAuthView();
   } else {
     showApp();

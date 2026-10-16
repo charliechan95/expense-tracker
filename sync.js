@@ -69,7 +69,7 @@ const Sync = {
     });
   },
 
-  _pushItem(item) {
+  async _pushItem(item) {
     const uid = Cloud.user().id;
     switch (item.table) {
       case "expenses": {
@@ -93,7 +93,21 @@ const Sync = {
           source: e.source, cat_source: e.cat_source,
           created_at: e.created_at, updated_at: e.updated_at,
         };
-        return Cloud.upsert("expenses", [row], "id");
+        // Imported rows carry external_id: dedupe against the
+        // (user_id, external_id) unique index so a re-push of the same bill
+        // (e.g. imported on two devices) becomes an update, never a
+        // unique-violation that would poison the queue. Manual rows have no
+        // external_id and keep deduping on their stable cloud id.
+        const conflict = e.external_id ? "user_id,external_id" : "id";
+        const saved = await Cloud.upsert("expenses", [row], conflict);
+        const savedId = saved && saved[0] && saved[0].id;
+        if (savedId && savedId !== e.cloud_id) {
+          // Another device pushed this bill first: adopt the surviving
+          // cloud id so the local ↔ cloud mapping stays correct.
+          e.cloud_id = savedId;
+          DB._write("exp_expenses", list);
+        }
+        return saved;
       }
       case "memory": {
         const mem = DB.getMerchantMemory();
@@ -170,11 +184,22 @@ const Sync = {
     return Cloud.fetchAll("expenses").then((rows) => {
       const local = DB._read("exp_expenses", []);
       const byCloud = new Map(local.filter((e) => e.cloud_id).map((e) => [e.cloud_id, e]));
+      const byExternal = new Map(
+        local.filter((e) => e.external_id).map((e) => [e.external_id, e]));
       const seen = new Set();
       let changed = false;
       for (const r of rows) {
         seen.add(r.id);
-        const e = byCloud.get(r.id);
+        let e = byCloud.get(r.id);
+        if (!e && r.external_id && byExternal.has(r.external_id)) {
+          // Same bill arrived under a cloud id this device doesn't know
+          // (another device pushed it first): adopt the id instead of
+          // creating a duplicate local row.
+          e = byExternal.get(r.external_id);
+          e.cloud_id = r.id;
+          byCloud.set(r.id, e);
+          changed = true;
+        }
         if (!e) {
           local.push({
             id: DB._nextId(), cloud_id: r.id,

@@ -20,6 +20,20 @@ const Cloud = {
     return this._user;
   },
 
+  /* Guest mode: fully local use while the backend is configured. The flag
+     lives in localStorage so it survives reloads; sign-out clears it.
+     Sync stays off because signedIn() is false. */
+  guest() {
+    return typeof storage !== "undefined" && storage.getItem("exp_guest") === "1";
+  },
+  enterGuest() {
+    if (typeof storage !== "undefined") storage.setItem("exp_guest", "1");
+    this._user = null;
+  },
+  exitGuest() {
+    if (typeof storage !== "undefined") storage.removeItem("exp_guest");
+  },
+
   async init() {
     if (!this.ready()) return false;
     this.client = supabase.createClient(BACKEND.url, BACKEND.key);
