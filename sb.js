@@ -74,7 +74,11 @@ const Cloud = {
   },
 
   async signUp(email, password) {
-    const { data, error } = await this.client.auth.signUp({ email, password });
+    const { data, error } = await this.client.auth.signUp({
+      email, password,
+      // The verification email's link must land back on this app.
+      options: { emailRedirectTo: location.origin + location.pathname },
+    });
     if (error) throw error;
     // With email confirmation on, data.user exists but data.session is
     // null — that is a pending account, not a signed-in user.
@@ -89,34 +93,8 @@ const Cloud = {
     return data.user;
   },
 
-  /* Google sign-in (OAuth). Needs the Google provider enabled in the
-     Supabase dashboard with this page as an allowed redirect; when it
-     isn't, supabase-js returns an "Unsupported provider" error and the
-     UI shows a plain-language message instead of failing silently.
-     Signing in with the same email as an existing password account
-     lands in that same account (Supabase links by verified email). */
-  async signInWithGoogle() {
-    const redirectTo = location.origin + location.pathname;
-    const { data, error } = await this.client.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo },
-    });
-    if (error) throw error;
-    return data;
-  },
-
   /* Sends the password-reset email; the link lands back on this page
      with a recovery session (see _recovery above). */
-  /* Passwordless sign-in: Supabase emails a one-time link; opening it
-     on this device signs the user in (a new email creates the account). */
-  async signInWithMagicLink(email) {
-    const redirectTo = location.origin + location.pathname;
-    const { error } = await this.client.auth.signInWithOtp({
-      email, options: { emailRedirectTo: redirectTo },
-    });
-    if (error) throw error;
-  },
-
   async resetPassword(email) {
     const redirectTo = location.origin + location.pathname;
     const { error } = await this.client.auth.resetPasswordForEmail(email, { redirectTo });

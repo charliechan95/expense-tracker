@@ -1388,28 +1388,11 @@ function showResetBlock() {
   if (block) block.style.display = "block";
 }
 
-/* Continue with Google. If the provider isn't enabled in the backend
-   yet, say so plainly instead of leaving the user on a dead screen. */
-document.getElementById("btn-google").addEventListener("click", async () => {
-  try {
-    await Cloud.signInWithGoogle();
-    // Success navigates away to Google; the session returns via the
-    // redirect and onCloudAuthChange takes it from there.
-  } catch (e) {
-    const m = (e && e.message) || "";
-    authMsg(/provider is not enabled|unsupported provider/i.test(m) ? t("auth_google_off") : m);
-  }
-});
+/* Sign-in is email + password only (owner's flow, 2026-10-16): register
+   with email and a password, verify via the emailed link, then sign in.
+   No Google button and no magic-link button on this screen. */
 
 /* Forgot password: email a reset link for the address typed above. */
-document.getElementById("btn-magic").addEventListener("click", async () => {
-  const email = document.getElementById("auth-email").value.trim();
-  if (!email) { authMsg(t("auth_email_needed")); return; }
-  try {
-    await Cloud.signInWithMagicLink(email);
-    authMsg(t("auth_magic_sent"), true);
-  } catch (e) { authMsg(friendlyAuthError(e, "signin")); }
-});
 document.getElementById("btn-forgot").addEventListener("click", async () => {
   const email = document.getElementById("auth-email").value.trim();
   if (!email) {

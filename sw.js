@@ -3,7 +3,7 @@
    Everything same-origin goes network-first (so updates always
    reach the user); the cache is only an offline fallback.
    Cross-origin (CDNs, Supabase) always hits the network. */
-const CACHE = "expense-tracker-v14";
+const CACHE = "expense-tracker-v15";
 const ASSETS = [
   "./", "./index.html", "./style.css",
   "./i18n.js", "./db.js", "./categorize.js", "./importers.js",
